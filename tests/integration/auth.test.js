@@ -1,8 +1,10 @@
 import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
-import app from '../src/app.js'
-import pool from '../src/config/db.js'
+import app from '../../src/app.js'
+import pool from '../../src/config/db.js'
+
+// Registration tests.
 
 describe('POST /api/v1/auth/register', () => {
   // Clean up test users before and after tests.
