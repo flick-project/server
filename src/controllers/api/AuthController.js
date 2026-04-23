@@ -47,7 +47,7 @@ export class AuthController {
 
       res.status(200).json({ token })
     } catch (error) {
-      const err = new Error('Unauthorized')
+      const err = new Error('Wrong email or password.')
       err.status = 401
       err.cause = error
       next(err)
