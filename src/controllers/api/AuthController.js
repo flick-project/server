@@ -5,7 +5,8 @@
  * @version 0.1.0
  */
 
-import { createUser } from '../../models/UserModel.js'
+import { createUser, authenticate } from '../../models/UserModel.js'
+import jwt from 'jsonwebtoken'
 
 /**
  * Controller for authentication-related actions.
@@ -30,6 +31,26 @@ export class AuthController {
         error.message = 'Email is already registered.'
       }
       next(error)
+    }
+  }
+
+  async login (req, res, next) {
+    try {
+      const { email, password } = req.body
+
+      const user = await authenticate(email, password)
+
+      const token = jwt.sign({ id: user.id, email: user.email },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_LIFE }
+      )
+
+      res.status(200).json({ token })
+    } catch (error) {
+      const err = new Error('Unauthorized')
+      err.status = 401
+      err.cause = error
+      next(err)
     }
   }
 }
