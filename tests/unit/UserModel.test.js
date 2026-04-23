@@ -1,14 +1,20 @@
-import { describe, it, after } from 'node:test'
+import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert'
-import { createUser } from '../../src/models/UserModel.js'
+import { createUser, authenticate } from '../../src/models/UserModel.js'
 import pool from '../../src/config/db.js'
 
-// Registration tests.
+// Register an account.
+
+// Clean up all test users and close pool when done.
+after(async () => {
+  await pool.query("DELETE FROM users WHERE email LIKE '%@test.com'")
+  await pool.end()
+})
 
 describe('createUser', () => {
-  after(async () => {
+  // Clean up all test users before testing.
+  before(async () => {
     await pool.query("DELETE FROM users WHERE email LIKE '%@test.com'")
-    await pool.end()
   })
 
   it('should create a user and return id, email, and created_at', async () => {
@@ -42,6 +48,46 @@ describe('createUser', () => {
       () => createUser('short@test.com', 'abc'),
       (err) => {
         assert.strictEqual(err.status, 400)
+        return true
+      }
+    )
+  })
+})
+
+// Log in to the application.
+
+describe('authenticate', () => {
+  before(async () => {
+    await createUser('auth@test.com', 'Secret12345')
+  })
+
+  it('should return user data on valid credentials', async () => {
+    const user = await authenticate('auth@test.com', 'Secret12345')
+    assert.ok(user.id)
+    assert.strictEqual(user.email, 'auth@test.com')
+    assert.ok(user.created_at)
+  })
+
+  it('should not return the password', async () => {
+    const user = await authenticate('auth@test.com', 'Secret12345')
+    assert.strictEqual(user.password, undefined)
+  })
+
+  it('should reject wrong password', async () => {
+    await assert.rejects(
+      () => authenticate('auth@test.com', 'WrongPassword1'),
+      (err) => {
+        assert.strictEqual(err.status, 401)
+        return true
+      }
+    )
+  })
+
+  it('should reject non-existent email', async () => {
+    await assert.rejects(
+      () => authenticate('nobody@test.com', 'Secret12345'),
+      (err) => {
+        assert.strictEqual(err.status, 401)
         return true
       }
     )
