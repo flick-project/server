@@ -20,9 +20,9 @@ export class AuthController {
    */
   async register (req, res, next) {
     try {
-      const { email, password } = req.body
+      const { email, password, displayName } = req.body
 
-      await createUser(email, password)
+      await createUser(email, password, displayName)
 
       res.status(201).json({ message: 'Registration successful.' })
     } catch (error) {
@@ -40,7 +40,7 @@ export class AuthController {
 
       const user = await authenticate(email, password)
 
-      const token = jwt.sign({ id: user.id, email: user.email },
+      const token = jwt.sign({ id: user.id, email: user.email, display_name: user.display_name },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_LIFE }
       )
