@@ -5,7 +5,7 @@
  * @version 0.1.0
  */
 
-import { jwt } from 'jsonwebtoken'
+import jwt from 'jsonwebtoken'
 
 /**
  * Authenticates a request based on a JSON Web Token (JWT).
@@ -15,7 +15,7 @@ import { jwt } from 'jsonwebtoken'
  * If the authentication fails, an unauthorized response with a 401 Unauthorized status code is sent.
  * @param {object} req - Express request object.
  * @param {object} res - Express response object.
- * @param {Function} next - Express next middleware function.
+ * @param {(error: Error) => void} next - Express next middleware function.
  */
 export const authenticateJWT = (req, res, next) => {
   try {
