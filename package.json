@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "node --watch --env-file=.env src/server.js",
     "start": "node --env-file=.env src/server.js",
-    "test": "node --env-file=.env --test tests/**/*.test.js",
+    "test": "node --env-file=.env --test --test-concurrency=1 tests/**/*.test.js",
     "test:unit": "node --env-file=.env --test tests/unit/**/*.test.js",
     "test:integration": "node --env-file=.env --test tests/integration/**/*.test.js",
     "lint": "npx eslint ./src || exit 0",
