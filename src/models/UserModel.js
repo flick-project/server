@@ -13,11 +13,11 @@ const DUMMY_HASH = '$2b$10$yxKgfbXVKer.RvJHITU4ru6mzDD6.U4qYv/lnH7KmgXb2pnrXokFm
 /**
  * Validate user input for registration.
  * @param {string} email - The user's email.
- * @param {string} password - The user's password.
  * @param {string} displayName - The user's display name.
+ * @param {string} password - The user's password.
  * @throws {Error} If validation fails.
  */
-const validate = (email, password, displayName) => {
+const validate = (email, displayName, password) => {
   if (!email || !password) {
     const error = new Error('Email and password are required.')
     error.status = 400
@@ -48,17 +48,17 @@ const validate = (email, password, displayName) => {
 /**
  * Create a new user.
  * @param {string} email - The user's email.
- * @param {string} password - The user's plain text password.
  * @param {string} displayName - The user's display name.
+ * @param {string} password - The user's plain text password.
  * @returns {object} The created user row.
  */
-export const createUser = async (email, password, displayName) => {
-  validate(email, password, displayName)
+export const createUser = async (email, displayName, password) => {
+  validate(email, displayName, password)
 
   const hashedPassword = await bcrypt.hash(password, 10)
   const result = await pool.query(
-    'INSERT INTO users (email, password, display_name) VALUES ($1, $2, $3) RETURNING id, email, display_name, created_at',
-    [email, hashedPassword, displayName]
+    'INSERT INTO users (email, display_name, password_hash) VALUES ($1, $2, $3) RETURNING id, email, display_name, created_at',
+    [email, displayName, hashedPassword]
   )
   return result.rows[0]
 }
@@ -94,7 +94,7 @@ export const authenticate = async (email, password) => {
     throw error
   }
 
-  if (!(await bcrypt.compare(password, user.password))) {
+  if (!(await bcrypt.compare(password, user.password_hash))) {
     const error = new Error('Invalid credentials.')
     error.status = 401
     throw error

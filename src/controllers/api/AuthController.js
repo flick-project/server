@@ -20,9 +20,9 @@ export class AuthController {
    */
   async register (req, res, next) {
     try {
-      const { email, password, displayName } = req.body
+      const { email, displayName, password } = req.body
 
-      await createUser(email, password, displayName)
+      await createUser(email, displayName, password)
 
       res.status(201).json({ message: 'Registration successful.' })
     } catch (error) {
