@@ -2,6 +2,7 @@
  * @file API service for TMDB's database.
  * @module services/tmdbServices
  * @author Hans Nilsson
+ * @version 0.1.0
  */
 
 export const fetchDiscoverMovies = async (page) => {
