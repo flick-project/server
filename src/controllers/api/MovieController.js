@@ -37,7 +37,7 @@ export class MovieController {
       // User ID from JWT token, not body.
       await createInteraction({ movie_id: movieId, user_id: req.user.id, interaction })
 
-      res.sendStatus(200)
+      res.status(200).json({ message: 'Interaction saved.' })
     } catch (error) {
       const err = new Error(error.message || 'Failed to register interaction.')
       err.status = error.status || 500
