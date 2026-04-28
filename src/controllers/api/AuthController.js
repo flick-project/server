@@ -5,7 +5,7 @@
  * @version 0.1.0
  */
 
-import { createUser, authenticate } from '../../models/UserModel.js'
+import { createUser, authenticate } from '../../models/userModel.js'
 import jwt from 'jsonwebtoken'
 
 /**
