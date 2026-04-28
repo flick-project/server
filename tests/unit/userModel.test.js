@@ -1,12 +1,12 @@
 import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert'
-import { createUser, authenticate } from '../../src/models/UserModel.js'
+import { createUser, authenticate } from '../../src/models/userModel.js'
 import pool from '../../src/config/db.js'
 
 before(async () => {
   await pool.query("DELETE FROM users WHERE email LIKE '%@unit.test'")
-  // Create user for authenticate tests.
-  await createUser('auth@unit.test', 'Secret12345', 'AuthUser')
+  // Create user for auth tests.
+  await createUser('auth@unit.test', 'AuthUser', 'Secret12345')
 })
 
 after(async () => {
@@ -16,22 +16,22 @@ after(async () => {
 
 describe('createUser', () => {
   it('should create a user and return id, email, and created_at', async () => {
-    const user = await createUser('unit@unit.test', 'Secret12345', 'TestUser')
+    const user = await createUser('unit@unit.test', 'TestUser', 'Secret12345')
     assert.ok(user.id)
     assert.strictEqual(user.email, 'unit@unit.test')
     assert.ok(user.created_at)
   })
 
   it('should hash the password before storing', async () => {
-    const result = await pool.query("SELECT password FROM users WHERE email = 'unit@unit.test'")
-    const stored = result.rows[0].password
+    const result = await pool.query("SELECT password_hash FROM users WHERE email = 'unit@unit.test'")
+    const stored = result.rows[0].password_hash
     assert.notStrictEqual(stored, 'Secret12345')
     assert.ok(stored.startsWith('$2b$'))
   })
 
   it('should reject missing email', async () => {
     await assert.rejects(
-      () => createUser('', 'Secret12345', 'TestUser'),
+      () => createUser('', 'TestUser', 'Secret12345'),
       (err) => {
         assert.strictEqual(err.status, 400)
         return true
@@ -41,7 +41,7 @@ describe('createUser', () => {
 
   it('should reject short password', async () => {
     await assert.rejects(
-      () => createUser('short@unit.test', 'abc', 'TestUser'),
+      () => createUser('short@unit.test', 'ShortUser', 'abc'),
       (err) => {
         assert.strictEqual(err.status, 400)
         return true
