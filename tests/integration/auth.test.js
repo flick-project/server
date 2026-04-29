@@ -5,15 +5,14 @@ import app from '../../src/app.js'
 import pool from '../../src/config/db.js'
 
 before(async () => {
-  await pool.query("DELETE FROM users WHERE email LIKE '%@integration.test'")
-  // Create shared test user for login and protected route tests.
+  await pool.query('DELETE FROM users')
   await request(app)
     .post('/api/v1/auth/register')
     .send({ email: 'existing@integration.test', password: 'Secret12345', displayName: 'ExistingUser' })
 })
 
 after(async () => {
-  await pool.query("DELETE FROM users WHERE email LIKE '%@integration.test'")
+  await pool.query('DELETE FROM users')
   await pool.end()
 })
 

@@ -18,9 +18,9 @@ const testMovie = {
 
 // Create test movie and test user.
 before(async () => {
-  await pool.query('DELETE FROM movie_interactions WHERE movie_id < 0')
-  await pool.query('DELETE FROM movies WHERE tmdb_id < 0')
-  await pool.query("DELETE FROM users WHERE email LIKE '%@integration.test'")
+  await pool.query('DELETE FROM movie_interactions')
+  await pool.query('DELETE FROM movies')
+  await pool.query('DELETE FROM users')
   await createMovie(testMovie)
   await request(app)
     .post('/api/v1/auth/register')
@@ -28,9 +28,9 @@ before(async () => {
 })
 
 after(async () => {
-  await pool.query('DELETE FROM movie_interactions WHERE movie_id < 0')
-  await pool.query('DELETE FROM movies WHERE tmdb_id < 0')
-  await pool.query("DELETE FROM users WHERE email LIKE '%@integration.test'")
+  await pool.query('DELETE FROM movie_interactions')
+  await pool.query('DELETE FROM movies')
+  await pool.query('DELETE FROM users')
   await pool.end()
 })
 
