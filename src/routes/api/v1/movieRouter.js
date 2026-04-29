@@ -8,6 +8,7 @@
 import express from 'express'
 import { MovieController } from '../../../controllers/api/MovieController.js'
 import { authenticateJWT } from '../../../middleware/auth.js'
+import { optionalAuth } from '../../../middleware/optionalAuth.js'
 
 export const router = express.Router()
 
@@ -16,7 +17,7 @@ const controller = new MovieController()
 // Map HTTP verbs and route paths to controller actions.
 
 // Get popular movies from TMDB discover.
-router.get('/discover', (req, res, next) => controller.discover(req, res, next))
+router.get('/discover', optionalAuth, (req, res, next) => controller.discover(req, res, next))
 
 // Post movie-user interaction.
 router.post('/interact', authenticateJWT, (req, res, next) => controller.interact(req, res, next))

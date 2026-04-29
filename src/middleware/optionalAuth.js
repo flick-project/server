@@ -17,10 +17,9 @@ import jwt from 'jsonwebtoken'
 export const optionalAuth = (req, res, next) => {
   try {
     const [scheme, token] = req.headers.authorization?.split(' ') ?? []
-    if (scheme !== 'Bearer') {
-      throw new Error('Invalid authentication scheme.')
+    if (scheme === 'Bearer') {
+      req.user = jwt.verify(token, process.env.JWT_SECRET)
     }
-    req.user = jwt.verify(token, process.env.JWT_SECRET)
   } catch {
     // Invalid token, continue without user.
   }
