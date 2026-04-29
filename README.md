@@ -6,7 +6,7 @@ Backend API for Flick, built with Express and PostgreSQL.
 
 1. Clone the repo
 2. `npm install`
-3. Set up `.env` (see `.env.example`)
+3. Set up `.env` (see `.env.example` and `.env.test.example`)
 4. `npm run dev`
 
 ## Testing
