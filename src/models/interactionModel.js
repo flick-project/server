@@ -36,11 +36,3 @@ export const createInteraction = async (interaction) => {
     [interaction.movie_id, interaction.user_id, interaction.interaction]
   )
 }
-
-export const getInteractedMovieIds = async (userId) => {
-  const result = await pool.query(
-    'SELECT movie_id FROM movie_interactions WHERE user_id = $1',
-    [userId]
-  )
-  return result.rows.map(row => row.movie_id)
-}

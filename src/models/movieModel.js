@@ -44,3 +44,11 @@ export const createMovie = async (movie) => {
     [movie.id, movie.release_date, movie.title, movie.genre_ids, movie.poster_path, movie.vote_average, movie.vote_count, movie.overview]
   )
 }
+
+export const getUndiscoveredMovies = async (userId) => {
+  const result = await pool.query(
+    'SELECT tmdb_id AS id, release_date, title, genre_ids, poster_path, vote_average, vote_count, overview FROM movies WHERE tmdb_id NOT IN (SELECT movie_id FROM movie_interactions WHERE user_id = $1) LIMIT 20',
+    [userId]
+  )
+  return result.rows
+}

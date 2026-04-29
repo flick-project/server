@@ -6,22 +6,37 @@
  */
 
 import { fetchDiscoverMovies } from '../../services/tmdbServices.js'
-import { createMovie } from '../../models/movieModel.js'
+import { createMovie, getUndiscoveredMovies } from '../../models/movieModel.js'
 import { createInteraction } from '../../models/interactionModel.js'
 
 export class MovieController {
   async discover (req, res, next) {
     try {
-      const { page } = req.query
+      let movies = []
 
-      const movies = await fetchDiscoverMovies(page)
-
-      // Store results in the database.
-      for (const movie of movies.results) {
-        await createMovie(movie)
+      if (req.user) {
+        movies = await getUndiscoveredMovies(req.user.id)
       }
 
-      res.status(200).json({ movies: movies.results })
+      // Restock from TMDB if pool is low.
+      if (movies.length < 20) {
+        const { page } = req.query
+        const tmdbMovies = await fetchDiscoverMovies(page)
+
+        // Store results in the database.
+        for (const movie of tmdbMovies.results) {
+          await createMovie(movie)
+        }
+
+        // Re-query after restocking.
+        if (req.user) {
+          movies = await getUndiscoveredMovies(req.user.id)
+        } else {
+          movies = tmdbMovies.results
+        }
+      }
+
+      res.status(200).json({ movies })
     } catch (error) {
       const err = new Error(error.message || 'Failed to fetch movies.')
       err.status = error.status || 500
