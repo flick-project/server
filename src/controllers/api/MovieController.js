@@ -10,8 +10,28 @@ import { createMovie, getUndiscoveredMovies } from '../../models/movieModel.js'
 import { createInteraction } from '../../models/interactionModel.js'
 
 export class MovieController {
+  /**
+   * Centralized error handling for controller methods.
+   * @param {Error} error - The original error thrown.
+   * @param {string} fallbackMessage  - A generic message to use if the error doesn't have one.
+   * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
+   */
+  handleControllerError (error, fallbackMessage, next) {
+    const err = new Error(error.message || fallbackMessage)
+    err.status = error.status || 500
+    err.cause = error
+    next(err)
+  }
+
+  /**
+   * Fetches a list of movies for discovery. If the user is authenticated, it fetches movies they haven't interacted with yet. If the pool of undiscovered movies is low, it fetches more from TMDB and stores them in the database.
+   * @param {object} req - Express's request object.
+   * @param {object} res - Express's response object.
+   * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
+   */
   async discover (req, res, next) {
     try {
+      const minMoviePool = 20
       let movies = []
 
       if (req.user) {
@@ -19,7 +39,7 @@ export class MovieController {
       }
 
       // Restock from TMDB if pool is low.
-      if (movies.length < 20) {
+      if (movies.length < minMoviePool) {
         const { page } = req.query
         const tmdbMovies = await fetchDiscoverMovies(page)
 
@@ -38,13 +58,16 @@ export class MovieController {
 
       res.status(200).json({ movies })
     } catch (error) {
-      const err = new Error(error.message || 'Failed to fetch movies.')
-      err.status = error.status || 500
-      err.cause = error
-      next(err)
+      this.handleControllerError(error, 'Failed to fetch movies.', next)
     }
   }
 
+  /**
+   * Registers a user's interaction with a movie.
+   * @param {object} req - Express's request object.
+   * @param {object} res - Express's response object.
+   * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
+   */
   async interact (req, res, next) {
     try {
       const { movieId, interaction } = req.body
@@ -54,10 +77,7 @@ export class MovieController {
 
       res.status(200).json({ message: 'Interaction saved.' })
     } catch (error) {
-      const err = new Error(error.message || 'Failed to register interaction.')
-      err.status = error.status || 500
-      err.cause = error
-      next(err)
+      this.handleControllerError(error, 'Failed to register interaction.', next)
     }
   }
 }
