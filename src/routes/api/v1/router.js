@@ -18,6 +18,11 @@ router.use('/auth', authRouter)
 
 router.use('/movies', movieRouter)
 
+// Test rate limiter.
+router.get('/test-rate-limit', (req, res) => {
+  res.status(200).json({ message: 'OK' })
+})
+
 // Test protected routes.
 router.get('/user/profile', authenticateJWT, (req, res) => {
   res.json({ user: req.user })

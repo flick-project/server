@@ -7,6 +7,7 @@
 
 import cors from 'cors'
 import express from 'express'
+import rateLimit from 'express-rate-limit'
 import helmet from 'helmet'
 import { router } from './routes/router.js'
 
@@ -18,6 +19,14 @@ app.use(helmet())
 
 // Enable Cross Origin Resource Sharing (CORS) (https://www.npmjs.com/package/cors).
 app.use(cors())
+
+// Limit to 100 requests per 15 minutes, returns 429 when exceeded.
+app.use(rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 100,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false
+}))
 
 // Parse requests of the content type application/json.
 app.use(express.json())
