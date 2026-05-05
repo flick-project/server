@@ -14,6 +14,9 @@ import { router } from './routes/router.js'
 // Create an Express application.
 const app = express()
 
+// Necessary for Nginx proxy.
+app.set('trust proxy', 1)
+
 // Set various HTTP headers to make the application little more secure (https://www.npmjs.com/package/helmet).
 app.use(helmet())
 
@@ -25,7 +28,8 @@ app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 100,
   standardHeaders: 'draft-7',
-  legacyHeaders: false
+  legacyHeaders: false,
+  message: { status: 429, message: 'Too many requests, please try again later.' }
 }))
 
 // Parse requests of the content type application/json.
@@ -49,8 +53,7 @@ app.use((err, req, res, next) => {
     return
   }
 
-  // Send only the error message and status code to prevent leakage of
-  // sensitive information.
+  // Full stack trace in development.
   res.status(status).json({
     status,
     message: err.message,
