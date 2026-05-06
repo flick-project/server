@@ -33,6 +33,33 @@ export const createInteraction = async (interaction) => {
 
   await pool.query(
     'INSERT INTO movie_interactions (movie_id, user_id, interaction) VALUES ($1, $2, $3) ON CONFLICT (user_id, movie_id) DO UPDATE SET interaction = EXCLUDED.interaction',
-    [interaction.movie_id, interaction.user_id, interaction.interaction]
+    [interaction.movieId, interaction.userId, interaction.interaction]
   )
+}
+
+const validateTmdbId = (tmdbId) => {
+  const id = Number(tmdbId)
+  if (!id) {
+    const error = new Error('Invalid TMDB ID format')
+    error.status = 400
+    throw error
+  }
+  return id
+}
+
+/**
+ * Deletes a user-movie interaction.
+ * @param {object} interaction - The interaction to delete.
+ * @returns {boolean} True if deletion was successful, false if nothing matched.
+ */
+export const deleteInteraction = async (interaction) => {
+  const movieId = validateTmdbId(interaction.movieId)
+
+  const result = await pool.query(
+    `DELETE FROM movie_interactions
+    WHERE movie_id = $1 AND user_id = $2 AND interaction = 'saved'`,
+    [movieId, interaction.userId]
+  )
+
+  return result.rowCount > 0
 }
