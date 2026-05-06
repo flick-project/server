@@ -8,6 +8,7 @@
 import express from 'express'
 import { router as authRouter } from './authRouter.js'
 import { router as movieRouter } from './movieRouter.js'
+import { router as watchlistRouter } from './watchlistRouter.js'
 import { authenticateJWT } from '../../../middleware/auth.js'
 
 export const router = express.Router()
@@ -17,6 +18,8 @@ router.get('/', (req, res) => res.json({ message: 'Welcome to version 1 of Flick
 router.use('/auth', authRouter)
 
 router.use('/movies', movieRouter)
+
+router.use('/watchlist', watchlistRouter)
 
 // Test rate limiter.
 router.get('/test-rate-limit', (req, res) => {

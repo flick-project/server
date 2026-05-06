@@ -17,7 +17,7 @@ export default defineConfig([
       sourceType: 'module',
     },
     rules: {
-      'no-unused-vars': ['error', { argsIgnorePattern: '^(next|res)$' }],
+      'no-unused-vars': ['error', { argsIgnorePattern: '^(next|res|req)$' }],
     },
   },
 ])

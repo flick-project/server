@@ -26,7 +26,7 @@ app.use(cors())
 // Limit to 100 requests per 15 minutes, returns 429 when exceeded.
 app.use(rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 100,
+  limit: process.env.NODE_ENV === 'production' ? 100 : 1000,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { status: 429, message: 'Too many requests, please try again later.' }

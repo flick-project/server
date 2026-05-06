@@ -7,11 +7,9 @@
 
 import { createUser, authenticate } from '../../models/userModel.js'
 import jwt from 'jsonwebtoken'
+import { BaseController } from './BaseController.js'
 
-/**
- * Controller for authentication-related actions.
- */
-export class AuthController {
+export class AuthController extends BaseController {
   /**
    * Register a new user.
    * @param {object} req - Express request object.
@@ -30,7 +28,7 @@ export class AuthController {
         error.status = 409
         error.message = 'Email is already registered.'
       }
-      next(error)
+      this.handleControllerError(error, 'Registration failed.', next)
     }
   }
 
@@ -47,10 +45,7 @@ export class AuthController {
 
       res.status(200).json({ token })
     } catch (error) {
-      const err = new Error('Wrong email or password.')
-      err.status = 401
-      err.cause = error
-      next(err)
+      this.handleControllerError(error, 'Wrong email or password.', next)
     }
   }
 }

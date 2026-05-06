@@ -8,21 +8,9 @@
 import { fetchDiscoverMovies } from '../../services/tmdbServices.js'
 import { createMovie, getUndiscoveredMovies } from '../../models/movieModel.js'
 import { createInteraction } from '../../models/interactionModel.js'
+import { BaseController } from './BaseController.js'
 
-export class MovieController {
-  /**
-   * Centralized error handling for controller methods.
-   * @param {Error} error - The original error thrown.
-   * @param {string} fallbackMessage  - A generic message to use if the error doesn't have one.
-   * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
-   */
-  handleControllerError (error, fallbackMessage, next) {
-    const err = new Error(error.message || fallbackMessage)
-    err.status = error.status || 500
-    err.cause = error
-    next(err)
-  }
-
+export class MovieController extends BaseController {
   /**
    * Fetches a list of movies for discovery. If the user is authenticated, it fetches movies they haven't interacted with yet. If the pool of undiscovered movies is low, it fetches more from TMDB and stores them in the database.
    * @param {object} req - Express's request object.
@@ -41,7 +29,7 @@ export class MovieController {
       // Restock from TMDB if pool is low.
       if (movies.length < minMoviePool) {
         const { page } = req.query
-        const tmdbMovies = await fetchDiscoverMovies(page)
+        const tmdbMovies = await fetchDiscoverMovies(page ?? 1)
 
         // Store results in the database.
         for (const movie of tmdbMovies.results) {
@@ -73,7 +61,7 @@ export class MovieController {
       const { movieId, interaction } = req.body
 
       // User ID from JWT token, not body.
-      await createInteraction({ movie_id: movieId, user_id: req.user.id, interaction })
+      await createInteraction({ movieId, userId: req.user.id, interaction })
 
       res.status(200).json({ message: 'Interaction saved.' })
     } catch (error) {
