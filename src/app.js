@@ -21,11 +21,13 @@ app.set('trust proxy', 1)
 app.use(helmet())
 
 // Enable Cross Origin Resource Sharing (CORS) (https://www.npmjs.com/package/cors).
-app.use(cors())
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173'
+}))
 
 // Limit to 100 requests per 15 minutes, returns 429 when exceeded.
 app.use(rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: process.env.NODE_ENV === 'production' ? 60000 : 15 * 60 * 1000,
   limit: process.env.NODE_ENV === 'production' ? 100 : 1000,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
