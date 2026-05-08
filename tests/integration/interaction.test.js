@@ -41,7 +41,7 @@ describe('POST /api/v1/movies/interact', () => {
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
       .send({ email: 'register@integration.test', password: 'Secret12345' })
-    token = `Bearer ${loginRes.body.token}`
+    token = `Bearer ${loginRes.body.access_token}`
   })
 
   it('should return 200 on valid interaction', async () => {

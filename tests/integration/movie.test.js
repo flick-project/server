@@ -66,7 +66,7 @@ describe('GET /api/v1/movies/discover', () => {
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
       .send({ email: 'discover@integration.test', password: 'Secret12345' })
-    token = `Bearer ${loginRes.body.token}`
+    token = `Bearer ${loginRes.body.access_token}`
   })
 
   it('should return movies for unauthenticated user', async () => {
