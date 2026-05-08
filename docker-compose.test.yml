@@ -1,0 +1,11 @@
+services:
+  test-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: flick
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: flick_test
+    volumes:
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    ports:
+      - "5433:5432"

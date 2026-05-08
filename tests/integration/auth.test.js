@@ -5,6 +5,7 @@ import app from '../../src/app.js'
 import pool from '../../src/config/db.js'
 
 before(async () => {
+  await pool.query('DELETE FROM refresh_tokens')
   await pool.query('DELETE FROM users')
   await request(app)
     .post('/api/v1/auth/register')
@@ -12,6 +13,7 @@ before(async () => {
 })
 
 after(async () => {
+  await pool.query('DELETE FROM refresh_tokens')
   await pool.query('DELETE FROM users')
   await pool.end()
 })
@@ -45,8 +47,8 @@ describe('POST /api/v1/auth/login', () => {
       .post('/api/v1/auth/login')
       .send({ email: 'existing@integration.test', password: 'Secret12345' })
     assert.strictEqual(res.status, 200)
-    assert.ok(res.body.token)
-    const parts = res.body.token.split('.')
+    assert.ok(res.body.access_token)
+    const parts = res.body.access_token.split('.')
     assert.strictEqual(parts.length, 3)
   })
 })
@@ -71,7 +73,7 @@ describe('Protected routes', () => {
       .send({ email: 'existing@integration.test', password: 'Secret12345' })
     const res = await request(app)
       .get('/api/v1/user/profile')
-      .set('Authorization', `Bearer ${loginRes.body.token}`)
+      .set('Authorization', `Bearer ${loginRes.body.access_token}`)
     assert.strictEqual(res.status, 200)
     assert.ok(res.body.user)
   })

@@ -5,6 +5,7 @@
  * @version 0.1.0
  */
 
+import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import express from 'express'
 import rateLimit from 'express-rate-limit'
@@ -17,12 +18,13 @@ const app = express()
 // Necessary for Nginx proxy.
 app.set('trust proxy', 1)
 
-// Set various HTTP headers to make the application little more secure (https://www.npmjs.com/package/helmet).
+// Set various HTTP headers to make the application a little more secure.
 app.use(helmet())
 
-// Enable Cross Origin Resource Sharing (CORS) (https://www.npmjs.com/package/cors).
+// Enable Cross Origin Resource Sharing (CORS).
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173'
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  credentials: true
 }))
 
 // Limit to 100 requests per 15 minutes, returns 429 when exceeded.
@@ -33,6 +35,9 @@ app.use(rateLimit({
   legacyHeaders: false,
   message: { status: 429, message: 'Too many requests, please try again later.' }
 }))
+
+// Parse cookie header and populate req.cookies.
+app.use(cookieParser())
 
 // Parse requests of the content type application/json.
 app.use(express.json())

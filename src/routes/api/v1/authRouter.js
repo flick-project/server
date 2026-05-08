@@ -13,9 +13,7 @@ export const router = express.Router()
 const controller = new AuthController()
 
 // Map HTTP verbs and route paths to controller actions.
-
-// Log in
-router.post('/login', (req, res, next) => controller.login(req, res, next))
-
-// Register
 router.post('/register', (req, res, next) => controller.register(req, res, next))
+router.post('/login', (req, res, next) => controller.login(req, res, next))
+router.post('/refresh', (req, res, next) => controller.refresh(req, res, next))
+router.post('/logout', (req, res, next) => controller.logout(req, res, next))
