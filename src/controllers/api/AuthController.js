@@ -118,7 +118,10 @@ export class AuthController extends BaseController {
       .status(status)
       .cookie('refreshToken', refreshToken, {
         ...COOKIE_OPTIONS,
-        maxAge: EXPIRY_DAYS * 24 * 60 * 60 * 1000
+        maxAge: process.env.NODE_ENV === 'production'
+          ? EXPIRY_DAYS * 24 * 60 * 60 * 1000
+        // 5 minutes in dev.
+          : 10 * 60 * 1000
       })
       .json({
         access_token: accessToken
