@@ -48,6 +48,7 @@ app.use('/', router)
 // Error handler.
 app.use((err, req, res, next) => {
   const status = err.status || 500
+  console.error(err)
 
   if (process.env.NODE_ENV === 'production') {
     // Ensure a valid status code is set for the error.

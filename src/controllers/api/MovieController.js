@@ -33,8 +33,11 @@ export class MovieController extends BaseController {
         const { page } = req.query
         const tmdbMovies = await discoverMovies(page ?? 1)
 
+        // Filter movies without poster.
+        const validMovies = tmdbMovies.results.filter(movie => movie.poster_path)
+
         // Store results in the database.
-        for (const movie of tmdbMovies.results) {
+        for (const movie of validMovies) {
           await createMovie(movie)
         }
 
