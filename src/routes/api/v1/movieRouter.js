@@ -19,5 +19,8 @@ const controller = new MovieController()
 // Get popular movies from TMDB discover.
 router.get('/discover', optionalAuth, (req, res, next) => controller.discover(req, res, next))
 
-// Post movie-user interaction.
+// Search for movies by title.
+router.get('/search', (req, res, next) => controller.search(req, res, next))
+
+// Create movie-user interaction.
 router.post('/interact', authenticateJWT, (req, res, next) => controller.interact(req, res, next))

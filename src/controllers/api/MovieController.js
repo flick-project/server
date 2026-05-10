@@ -5,14 +5,16 @@
  * @version 0.1.0
  */
 
-import { fetchDiscoverMovies } from '../../services/tmdbServices.js'
+import { discoverMovies, searchMovies } from '../../services/tmdbServices.js'
 import { createMovie, getUndiscoveredMovies } from '../../models/movieModel.js'
 import { createInteraction } from '../../models/interactionModel.js'
 import { BaseController } from './BaseController.js'
 
 export class MovieController extends BaseController {
   /**
-   * Fetches a list of movies for discovery. If the user is authenticated, it fetches movies they haven't interacted with yet. If the pool of undiscovered movies is low, it fetches more from TMDB and stores them in the database.
+   * Fetches a list of movies for discovery.
+   * If the user is authenticated, it fetches movies they haven't interacted with yet.
+   * If the pool of undiscovered movies is low, it fetches more from TMDB and stores them in the database.
    * @param {object} req - Express's request object.
    * @param {object} res - Express's response object.
    * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
@@ -29,7 +31,7 @@ export class MovieController extends BaseController {
       // Restock from TMDB if pool is low.
       if (movies.length < minMoviePool) {
         const { page } = req.query
-        const tmdbMovies = await fetchDiscoverMovies(page ?? 1)
+        const tmdbMovies = await discoverMovies(page ?? 1)
 
         // Store results in the database.
         for (const movie of tmdbMovies.results) {
@@ -47,6 +49,23 @@ export class MovieController extends BaseController {
       res.status(200).json({ movies })
     } catch (error) {
       this.handleControllerError(error, 'Failed to fetch movies.', next)
+    }
+  }
+
+  /**
+   * Search for a movie from TMDB.
+   * @param {object} req - Express's request object.
+   * @param {object} res - Express's response object.
+   * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
+   */
+  async search (req, res, next) {
+    const { query } = req.query
+
+    try {
+      const result = await searchMovies(query)
+      res.status(200).json(result)
+    } catch (error) {
+      this.handleControllerError(error, 'Movie search failed.', next)
     }
   }
 
