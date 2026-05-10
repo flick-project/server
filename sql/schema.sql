@@ -3,7 +3,7 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     display_name VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE movies (
@@ -15,7 +15,15 @@ CREATE TABLE movies (
     vote_average NUMERIC(3,1) NOT NULL,
     vote_count INTEGER NOT NULL,
     overview TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE user_favorites (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tmdb_id INTEGER NOT NULL REFERENCES movies(tmdb_id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id, tmdb_id)
 );
 
 CREATE TABLE movie_interactions (
@@ -23,7 +31,7 @@ CREATE TABLE movie_interactions (
     movie_id INTEGER NOT NULL REFERENCES movies(tmdb_id),
     user_id INTEGER NOT NULL REFERENCES users(id),
     interaction VARCHAR(20) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, movie_id)
 );
 

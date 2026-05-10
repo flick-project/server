@@ -59,11 +59,16 @@ export class MovieController extends BaseController {
    * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
    */
   async search (req, res, next) {
-    const { query } = req.query
-
     try {
-      const result = await searchMovies(query)
-      res.status(200).json(result)
+      const { query } = req.query
+
+      // Exit early if no search query is provided.
+      if (!query?.trim()) {
+        res.status(400).json({ message: 'Search query is required' })
+      } else {
+        const result = await searchMovies(query)
+        res.status(200).json(result)
+      }
     } catch (error) {
       this.handleControllerError(error, 'Movie search failed.', next)
     }
