@@ -10,7 +10,6 @@ import { router as authRouter } from './authRouter.js'
 import { router as userRouter } from './userRouter.js'
 import { router as movieRouter } from './movieRouter.js'
 import { router as watchlistRouter } from './watchlistRouter.js'
-import { authenticateJWT } from '../../../middleware/auth.js'
 
 export const router = express.Router()
 
@@ -27,9 +26,4 @@ router.use('/watchlist', watchlistRouter)
 // Test rate limiter.
 router.get('/test-rate-limit', (req, res) => {
   res.status(200).json({ message: 'OK' })
-})
-
-// Test protected routes.
-router.get('/user/profile', authenticateJWT, (req, res) => {
-  res.json({ user: req.user })
 })
