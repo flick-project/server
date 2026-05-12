@@ -31,7 +31,7 @@ const mockFetch = mock.fn(async () => ({
 
 // Must be defined before app import to intercept TMDB calls.
 await mock.module('../../src/services/tmdbServices.js', {
-  namedExports: { fetchDiscoverMovies: mockFetch }
+  namedExports: { discoverMovies: mockFetch, searchMovies: mockFetch }
 })
 
 const { default: app } = await import('../../src/app.js')

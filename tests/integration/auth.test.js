@@ -56,13 +56,13 @@ describe('POST /api/v1/auth/login', () => {
 describe('Protected routes', () => {
   it('should reject request without token', async () => {
     const res = await request(app)
-      .get('/api/v1/user/profile')
+      .get('/api/v1/watchlist')
     assert.strictEqual(res.status, 401)
   })
 
   it('should reject request with invalid token', async () => {
     const res = await request(app)
-      .get('/api/v1/user/profile')
+      .get('/api/v1/watchlist')
       .set('Authorization', 'Bearer invalid.token.here')
     assert.strictEqual(res.status, 401)
   })
@@ -72,9 +72,19 @@ describe('Protected routes', () => {
       .post('/api/v1/auth/login')
       .send({ email: 'existing@integration.test', password: 'Secret12345' })
     const res = await request(app)
-      .get('/api/v1/user/profile')
+      .get('/api/v1/watchlist')
       .set('Authorization', `Bearer ${loginRes.body.access_token}`)
     assert.strictEqual(res.status, 200)
-    assert.ok(res.body.user)
+    assert.ok(res.body.movies)
+  })
+
+  it('should return a valid token on refresh', async () => {
+    const loginRes = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'existing@integration.test', password: 'Secret12345' })
+    const res = await request(app)
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', loginRes.headers['set-cookie'])
+    assert.strictEqual(res.status, 201)
   })
 })
