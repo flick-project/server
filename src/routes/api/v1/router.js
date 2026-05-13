@@ -2,7 +2,6 @@
  * @file API version 1 router.
  * @module routes/router
  * @author Hans Nilsson
- * @version 0.1.0
  */
 
 import express from 'express'

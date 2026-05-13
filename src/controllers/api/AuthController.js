@@ -62,11 +62,12 @@ export class AuthController extends BaseController {
    * @param {object} req - Express request object.
    * @param {object} res - Express response object.
    * @param {(error: Error) => void} next - Express next middleware function.
+   * @returns {void}
    */
   async refresh (req, res, next) {
     try {
       const refreshToken = req.cookies?.refreshToken
-      if (!refreshToken) throw createError('No refresh token provided', 401)
+      if (!refreshToken) return res.status(401).json({ message: 'No refresh token provided.' })
 
       // Ensure the refresh token exists in the database.
       const tokenRow = await findValid(refreshToken)

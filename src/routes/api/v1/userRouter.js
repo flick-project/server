@@ -2,7 +2,6 @@
  * @file Defines the user router.
  * @module routes/userRouter
  * @author Hans Nilsson
- * @version 0.1.0
  */
 
 import express from 'express'
@@ -23,3 +22,6 @@ router.get('/favorites', authenticateJWT, (req, res, next) => controller.getFavo
 
 // Get a user's profile info.
 router.get('/profile', authenticateJWT, (req, res, next) => controller.getProfile(req, res, next))
+
+// Get a user's stats (swipes and saves).
+router.get('/stats', authenticateJWT, (req, res, next) => controller.getStats(req, res, next))
