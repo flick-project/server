@@ -13,7 +13,7 @@ import { createMovie } from './movieModel.js'
  * @param {number} userId - The user's ID.
  * @param {object} movie - The movie object from TMDB.
  */
-export const saveFavorite = async (userId, movie) => {
+export const createFavorite = async (userId, movie) => {
   await createMovie(movie)
   await pool.query(
     'INSERT INTO user_favorites (user_id, tmdb_id) VALUES ($1, $2) ON CONFLICT (user_id, tmdb_id) DO NOTHING',
@@ -26,7 +26,7 @@ export const saveFavorite = async (userId, movie) => {
  * @param {number} userId - The user's ID.
  * @returns {Promise<Array>} The user's favorite movies.
  */
-export const getFavorites = async (userId) => {
+export const findFavorites = async (userId) => {
   const result = await pool.query(
     `SELECT m.tmdb_id AS id, m.title, m.poster_path
      FROM user_favorites uf

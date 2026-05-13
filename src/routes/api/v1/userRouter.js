@@ -20,3 +20,6 @@ router.post('/favorites', authenticateJWT, (req, res, next) => controller.saveFa
 
 // Get a user's favorite movies.
 router.get('/favorites', authenticateJWT, (req, res, next) => controller.getFavorites(req, res, next))
+
+// Get a user's profile info.
+router.get('/profile', authenticateJWT, (req, res, next) => controller.getProfile(req, res, next))

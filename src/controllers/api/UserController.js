@@ -5,8 +5,10 @@
  * @version 0.1.0
  */
 
-import { saveFavorite, getFavorites } from '../../models/favoriteModel.js'
 import { BaseController } from './BaseController.js'
+import { createFavorite, findFavorites } from '../../models/favoriteModel.js'
+import { findProfileInfo } from '../../models/profileModel.js'
+import { gravatarUrl } from '../../utils/gravatar.js'
 
 export class UserController extends BaseController {
   /**
@@ -20,7 +22,7 @@ export class UserController extends BaseController {
 
     try {
       for (const movie of movies) {
-        await saveFavorite(req.user.id, movie)
+        await createFavorite(req.user.id, movie)
       }
       res.status(201).json({ message: 'Favorites saved.' })
     } catch (error) {
@@ -36,11 +38,33 @@ export class UserController extends BaseController {
    */
   async getFavorites (req, res, next) {
     try {
-      const movies = await getFavorites(req.user.id)
+      const movies = await findFavorites(req.user.id)
 
       res.status(200).json(movies)
     } catch (error) {
       this.handleControllerError(error, 'Failed to get favorites.', next)
+    }
+  }
+
+  /**
+   * Gets a user's basic profile info.
+   * @param {object} req - Express's request object.
+   * @param {object} res - Express's response object.
+   * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
+   */
+  async getProfile (req, res, next) {
+    try {
+      const profileData = await findProfileInfo(req.user.id)
+
+      const profile = {
+        displayName: profileData.display_name,
+        gravatar: gravatarUrl(profileData.email),
+        createdAt: profileData.created_at
+      }
+
+      res.status(200).json(profile)
+    } catch (error) {
+      this.handleControllerError(error, 'Failed to fetch profile.', next)
     }
   }
 }
