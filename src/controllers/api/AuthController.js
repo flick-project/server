@@ -58,7 +58,7 @@ export class AuthController extends BaseController {
 
   /**
    * Refreshes the access token using a refresh token.
-   * Also generates a new refresh token, removing the old one.
+   * Also generates a new refresh token, preventing replay attacks.
    * @param {object} req - Express request object.
    * @param {object} res - Express response object.
    * @param {(error: Error) => void} next - Express next middleware function.

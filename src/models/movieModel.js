@@ -68,16 +68,18 @@ const validatePageNumber = (page) => {
 
 /**
  * Get saved movies for a user, ordered by most recently saved.
+ * Also returns the amount of movies the user has saved.
  * @param {number} userId - The user's ID.
  * @param {number|string} [page] - The page number. Defaults to 1.
- * @returns {Promise<Array>} The saved movies.
+ * @returns {Promise<Array>} The saved movies and their count.
  */
 export const getSavedMovies = async (userId, page) => {
   const pageNumber = validatePageNumber(page)
   const limit = 20
   const offset = (pageNumber - 1) * limit
 
-  const result = await pool.query(
+  const [result, countResult] = await Promise.all([
+    pool.query(
     `SELECT m.tmdb_id, m.title, m.poster_path
     FROM movies m
     JOIN movie_interactions mi ON m.tmdb_id = mi.movie_id
@@ -87,6 +89,12 @@ export const getSavedMovies = async (userId, page) => {
     LIMIT $2
     OFFSET $3`,
     [userId, limit, offset]
-  )
-  return result.rows
+    ),
+    pool.query(
+      `SELECT COUNT(*) FROM movie_interactions
+      WHERE user_id = $1 AND interaction = 'saved'`,
+      [userId]
+    )
+  ])
+  return { movies: result.rows, total: Number(countResult.rows[0].count) }
 }

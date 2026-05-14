@@ -5,7 +5,7 @@
  */
 
 import { BaseController } from './BaseController.js'
-import { createFavorite, findFavorites } from '../../models/favoriteModel.js'
+import { createFavorite, findFavorites, removeFavorite } from '../../models/favoriteModel.js'
 import { findProfileInfo, findStats } from '../../models/profileModel.js'
 import { gravatarUrl } from '../../utils/gravatar.js'
 
@@ -30,6 +30,23 @@ export class UserController extends BaseController {
   }
 
   /**
+   * Add a movie to the user's favorites.
+   * @param {object} req - Express's request object.
+   * @param {object} res - Express's response object.
+   * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
+   */
+  async addFavorite (req, res, next) {
+    try {
+      const success = await createFavorite(req.user.id, req.body.movie)
+      success
+        ? res.status(201).json({ message: 'Favorite saved.' })
+        : res.status(409).json({ message: 'Duplicate skipped.' })
+    } catch (error) {
+      this.handleControllerError(error, 'Failed to save favorite.', next)
+    }
+  }
+
+  /**
    * Gets a user's list of favorite movies.
    * @param {object} req - Express's request object.
    * @param {object} res - Express's response object.
@@ -42,6 +59,21 @@ export class UserController extends BaseController {
       res.status(200).json(movies)
     } catch (error) {
       this.handleControllerError(error, 'Failed to get favorites.', next)
+    }
+  }
+
+  /**
+   * Deletes a user's favorite movie.
+   * @param {object} req - Express's request object.
+   * @param {object} res - Express's response object.
+   * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
+   */
+  async deleteFavorite (req, res, next) {
+    try {
+      await removeFavorite(req.user.id, req.params.movieId)
+      res.status(204).end()
+    } catch (error) {
+      this.handleControllerError(error, 'Failed to delete favorite.', next)
     }
   }
 
