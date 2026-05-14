@@ -29,7 +29,7 @@ export const authenticateJWT = (req, res, next) => {
 
     next()
   } catch (error) {
-    const err = new Error('Unauthorized')
+    const err = new Error('Authentication required.')
     err.status = 401
     err.cause = error
     next(err)

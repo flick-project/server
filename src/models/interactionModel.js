@@ -6,6 +6,7 @@
  */
 
 import pool from '../config/db.js'
+import { validateTmdbId } from '../utils/validation.js'
 
 /**
  * Validate interaction data before storing.
@@ -37,22 +38,12 @@ export const createInteraction = async (interaction) => {
   )
 }
 
-const validateTmdbId = (tmdbId) => {
-  const id = Number(tmdbId)
-  if (!id) {
-    const error = new Error('Invalid TMDB ID format')
-    error.status = 400
-    throw error
-  }
-  return id
-}
-
 /**
  * Deletes a user-movie interaction.
  * @param {object} interaction - The interaction to delete.
  * @returns {boolean} True if deletion was successful, false if nothing matched.
  */
-export const deleteInteraction = async (interaction) => {
+export const removeInteraction = async (interaction) => {
   const movieId = validateTmdbId(interaction.movieId)
 
   const result = await pool.query(
