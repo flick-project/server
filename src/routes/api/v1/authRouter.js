@@ -2,7 +2,6 @@
  * @file Defines the authentication router.
  * @module routes/accountRouter
  * @author Hans Nilsson
- * @version 0.1.0
  */
 
 import express from 'express'

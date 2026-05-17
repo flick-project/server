@@ -2,7 +2,6 @@
  * @file Base controller with shared utilities for all controllers.
  * @module controllers/api/BaseController
  * @author Hans Nilsson
- * @version 0.1.0
  */
 
 export class BaseController {

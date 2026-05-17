@@ -2,7 +2,6 @@
  * @file Defines the movie router.
  * @module routes/movieRouter
  * @author Hans Nilsson
- * @version 0.1.0
  */
 
 import express from 'express'
