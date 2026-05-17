@@ -68,6 +68,8 @@ test:
     - if: $CI_COMMIT_TAG
 
 deploy:
+  environment:
+    name: production
   stage: deploy
   image: docker:27-cli
   before_script: *before_script_ssh_setup
