@@ -9,6 +9,7 @@ services:
     environment:
       - PORT=3000
       - JWT_LIFE=10m
+      - CORS_ORIGIN=https://flick.lingon.cloud
     networks:
       - flick-network
       - proxy
