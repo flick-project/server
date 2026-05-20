@@ -2,7 +2,6 @@
  * @file Database connection configuration.
  * @module config/db
  * @author Hans Nilsson
- * @version 0.1.0
  */
 
 import pg from 'pg'

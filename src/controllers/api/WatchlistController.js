@@ -2,11 +2,9 @@
  * @file Watchlist controller for handling a user's watchlist.
  * @module controllers/api/WatchlistController
  * @author Hans Nilsson
- * @version 0.1.0
  */
 
-import { getSavedMovies } from '../../models/movieModel.js'
-import { removeInteraction } from '../../models/interactionModel.js'
+import { findWatchlist, removeFromWatchlist } from '../../models/watchlistModel.js'
 import { BaseController } from './BaseController.js'
 
 export class WatchlistController extends BaseController {
@@ -18,8 +16,7 @@ export class WatchlistController extends BaseController {
    */
   async getWatchlist (req, res, next) {
     try {
-      const data = await getSavedMovies(req.user.id, req.query.page)
-
+      const data = await findWatchlist(req.user.id, req.query.page, req.query.limit)
       res.status(200).json({ movies: data.movies, total: data.total })
     } catch (error) {
       this.handleControllerError(error, 'Failed to fetch watchlist.', next)
@@ -35,12 +32,10 @@ export class WatchlistController extends BaseController {
    */
   async deleteFromWatchlist (req, res, next) {
     try {
-      const result = await removeInteraction({ movieId: req.params.movieId, userId: req.user.id })
-
+      const result = await removeFromWatchlist(req.user.id, req.params.movieId)
       if (!result) {
         return res.status(404).json({ message: 'Movie not in watchlist.' })
       }
-
       res.status(200).json({ message: 'Movie removed from watchlist' })
     } catch (error) {
       this.handleControllerError(error, 'Failed to delete movie from watchlist.', next)
