@@ -2,11 +2,9 @@
  * @file Defines the interaction model for user-movie interactions.
  * @module models/interactionModel
  * @author Hans Nilsson
- * @version 0.1.0
  */
 
 import pool from '../config/db.js'
-import { validateTmdbId } from '../utils/validation.js'
 
 /**
  * Validate interaction data before storing.
@@ -14,7 +12,7 @@ import { validateTmdbId } from '../utils/validation.js'
  * @throws {Error} If validation fails.
  */
 const validate = (interaction) => {
-  const validTypes = ['saved', 'skipped']
+  const validTypes = ['saved', 'skipped', 'removed']
 
   if (!validTypes.includes(interaction.interaction)) {
     const error = new Error('Invalid interaction type')
@@ -36,21 +34,4 @@ export const createInteraction = async (interaction) => {
     'INSERT INTO movie_interactions (movie_id, user_id, interaction) VALUES ($1, $2, $3) ON CONFLICT (user_id, movie_id) DO UPDATE SET interaction = EXCLUDED.interaction',
     [interaction.movieId, interaction.userId, interaction.interaction]
   )
-}
-
-/**
- * Deletes a user-movie interaction.
- * @param {object} interaction - The interaction to delete.
- * @returns {boolean} True if deletion was successful, false if nothing matched.
- */
-export const removeInteraction = async (interaction) => {
-  const movieId = validateTmdbId(interaction.movieId)
-
-  const result = await pool.query(
-    `DELETE FROM movie_interactions
-    WHERE movie_id = $1 AND user_id = $2 AND interaction = 'saved'`,
-    [movieId, interaction.userId]
-  )
-
-  return result.rowCount > 0
 }

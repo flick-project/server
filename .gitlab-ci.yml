@@ -49,7 +49,7 @@ test:
     DATABASE_URL: postgresql://flick:test@postgres:5432/flick_test
     PORT: 3000
     JWT_SECRET: test-secret
-    JWT_LIFE: 15m
+    JWT_LIFE: 10m
     TMDB_API_KEY: fake-key
   script:
     - echo "Running tests and linting..."
@@ -81,9 +81,7 @@ deploy:
     - docker context use production
     - echo "DATABASE_URL=${DATABASE_URL}" > .env
     - echo "JWT_SECRET=${JWT_SECRET}" >> .env
-    - echo "JWT_LIFE=${JWT_LIFE}" >> .env
     - echo "TMDB_API_KEY=${TMDB_API_KEY}" >> .env
-    - echo "PORT=${PORT}" >> .env
     - docker compose -f docker-compose.production.yml up -d --build
     - docker system prune -f
   rules:

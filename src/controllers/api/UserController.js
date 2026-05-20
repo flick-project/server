@@ -100,7 +100,7 @@ export class UserController extends BaseController {
   }
 
   /**
-   * Gets a user's stats (swipes and saves).
+   * Gets interaction stats for a user.
    * @param {object} req - Express's request object.
    * @param {object} res - Express's response object.
    * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
@@ -110,8 +110,10 @@ export class UserController extends BaseController {
       const statsData = await findStats(req.user.id)
 
       const stats = {
-        totalSwipes: statsData.total_swipes,
-        totalSaves: statsData.total_saves
+        totalInteractions: statsData.total_interactions,
+        totalSaves: statsData.total_saves,
+        totalSkips: statsData.total_skips,
+        totalWatched: statsData.total_watched
       }
 
       res.status(200).json(stats)

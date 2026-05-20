@@ -22,16 +22,18 @@ export const findProfileInfo = async (userId) => {
 }
 
 /**
- * Get stats from the user.
+ * Get interaction stats from a user.
  * @param {number} userId - The user's ID.
- * @returns {object} The user's swipes and saves.
+ * @returns {object} The user's interaction counts.
  */
 export const findStats = async (userId) => {
   const result = await pool.query(
-    `SELECT 
-    COUNT(*) AS total_swipes,
-    COUNT(*) FILTER (WHERE interaction = 'saved') AS total_saves
-    FROM movie_interactions 
+    `SELECT
+    COUNT(*) AS total_interactions,
+    COUNT(*) FILTER (WHERE interaction IN ('saved', 'removed')) AS total_saves,
+    COUNT(*) FILTER (WHERE interaction = 'skipped') AS total_skips,
+    COUNT(*) FILTER (WHERE interaction = 'seen') AS total_watched
+    FROM movie_interactions
     WHERE user_id = $1`,
     [userId]
   )
