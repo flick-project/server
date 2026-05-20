@@ -2,11 +2,12 @@
  * @file Movie controller for handling movie suggestions.
  * @module controllers/api/MovieController
  * @author Hans Nilsson
- * @version 0.1.0
  */
 
+const DISCOVER_POOL = 20
+
 import { discoverMovies, searchMovies } from '../../services/tmdbServices.js'
-import { createMovie, getUndiscoveredMovies } from '../../models/movieModel.js'
+import { createMovie, findUndiscoveredMovies } from '../../models/movieModel.js'
 import { createInteraction } from '../../models/interactionModel.js'
 import { BaseController } from './BaseController.js'
 
@@ -21,15 +22,14 @@ export class MovieController extends BaseController {
    */
   async discover (req, res, next) {
     try {
-      const minMoviePool = 20
       let movies = []
 
       if (req.user) {
-        movies = await getUndiscoveredMovies(req.user.id)
+        movies = await findUndiscoveredMovies(req.user.id)
       }
 
       // Restock from TMDB if pool is low.
-      if (movies.length < minMoviePool) {
+      if (movies.length < DISCOVER_POOL) {
         const { page } = req.query
         const tmdbMovies = await discoverMovies(page ?? 1)
 
@@ -43,7 +43,7 @@ export class MovieController extends BaseController {
 
         // Re-query after restocking.
         if (req.user) {
-          movies = await getUndiscoveredMovies(req.user.id)
+          movies = await findUndiscoveredMovies(req.user.id)
         } else {
           movies = tmdbMovies.results
         }
