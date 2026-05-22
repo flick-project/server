@@ -9,6 +9,7 @@ import { router as authRouter } from './authRouter.js'
 import { router as userRouter } from './userRouter.js'
 import { router as movieRouter } from './movieRouter.js'
 import { router as watchlistRouter } from './watchlistRouter.js'
+import { router as ratingRouter } from './ratingRouter.js'
 
 export const router = express.Router()
 
@@ -21,6 +22,8 @@ router.use('/user', userRouter)
 router.use('/movies', movieRouter)
 
 router.use('/watchlist', watchlistRouter)
+
+router.use('/ratings', ratingRouter)
 
 // Test rate limiter.
 router.get('/test-rate-limit', (req, res) => {

@@ -40,7 +40,7 @@ app.use(rateLimit({
 app.use(cookieParser())
 
 // Parse requests of the content type application/json.
-app.use(express.json())
+app.use(express.json({ limit: '100kb' }))
 
 // Register routes.
 app.use('/', router)
