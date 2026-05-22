@@ -35,6 +35,16 @@ CREATE TABLE movie_interactions (
     UNIQUE (user_id, movie_id)
 );
 
+CREATE TABLE ratings (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    movie_id INTEGER NOT NULL REFERENCES movies(tmdb_id),
+    rating VARCHAR(10) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (user_id, movie_id)
+);
+
 CREATE TABLE refresh_tokens (
   id SERIAL PRIMARY KEY,
   token TEXT NOT NULL,

@@ -2,7 +2,6 @@
  * @file Defines the movie model.
  * @module models/movieModel
  * @author Hans Nilsson
- * @version 0.1.0
  */
 
 import pool from '../config/db.js'
@@ -47,6 +46,7 @@ export const createMovie = async (movie) => {
 
 /**
  * Gets 20 undiscovered movies for a user.
+ * Filters interacted and rated movies.
  * @param {number} userId - The user's ID.
  * @returns {Promise<Array>} The undiscovered movies.
  */
@@ -57,6 +57,10 @@ export const findUndiscoveredMovies = async (userId) => {
     WHERE tmdb_id NOT IN (
       SELECT movie_id FROM movie_interactions
       WHERE user_id = $1 AND interaction != 'removed'
+    )
+    AND tmdb_id NOT IN (
+      SELECT movie_id FROM ratings
+      WHERE user_id = $1
     )
     LIMIT 20`,
     [userId]
