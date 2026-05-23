@@ -18,6 +18,7 @@ describe('createUser', () => {
   it('should create a user and return id, email, and created_at', async () => {
     const user = await createUser('unit@unit.test', 'TestUser', 'Secret12345')
     assert.ok(user.id)
+    assert.strictEqual(user.display_name, 'TestUser')
     assert.strictEqual(user.email, 'unit@unit.test')
     assert.ok(user.created_at)
   })

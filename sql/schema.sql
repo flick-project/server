@@ -39,7 +39,7 @@ CREATE TABLE ratings (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
     movie_id INTEGER NOT NULL REFERENCES movies(tmdb_id),
-    rating VARCHAR(10) NOT NULL,
+    rating VARCHAR(10) NOT NULL CHECK (rating IN ('love', 'like', 'dislike', 'hate')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (user_id, movie_id)
