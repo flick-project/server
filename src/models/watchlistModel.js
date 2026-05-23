@@ -34,9 +34,11 @@ export const findWatchlist = async (userId, page, limit) => {
 
   const result = await pool.query(
     `SELECT m.tmdb_id, m.title, m.poster_path,
+    r.rating,
     COUNT(*) OVER() AS total
     FROM movies m
     JOIN movie_interactions mi ON m.tmdb_id = mi.movie_id
+    LEFT JOIN ratings r ON m.tmdb_id = r.movie_id AND r.user_id = $1
     WHERE mi.user_id = $1
     AND mi.interaction = 'saved'
     ORDER BY mi.created_at DESC
