@@ -8,8 +8,9 @@ import { BaseController } from './BaseController.js'
 import { createFavorite, findFavorites, removeFavorite } from '../../models/favoriteModel.js'
 import { findProfileInfo, findStats } from '../../models/profileModel.js'
 import { gravatarUrl } from '../../utils/gravatar.js'
-import { fetchRecommendations, fetchMovieKeywords } from '../../services/tmdbServices.js'
-import { createMovie, updateMovieKeywords } from '../../models/movieModel.js'
+import { enrichPool } from '../../services/recommendationService.js'
+import { fetchMovieKeywords } from '../../services/tmdbServices.js'
+import { updateMovieKeywords } from '../../models/movieModel.js'
 
 export class UserController extends BaseController {
   /**
@@ -45,12 +46,8 @@ export class UserController extends BaseController {
         // Fetch and store keywords for the recommendation profile.
         const keywordIds = await fetchMovieKeywords(movie.id)
         await updateMovieKeywords(movie.id, keywordIds)
-        // Store TMDB's recommendations for favorited movies.
-        const recommended = await fetchRecommendations(movie.id)
-        console.log('TMDB recommendations for favorite', movie.id, ':', recommended.results.length)
-        for (const m of recommended.results.filter(m => m.poster_path)) {
-          await createMovie(m)
-        }
+        // Store genre-filtered TMDB recommendations.
+        await enrichPool(req.user.id, movie.id)
         res.status(201).json({ message: 'Favorite saved.' })
       } else {
         res.status(409).json({ message: 'Duplicate skipped.' })
