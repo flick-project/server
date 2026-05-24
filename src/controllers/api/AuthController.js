@@ -121,7 +121,7 @@ export class AuthController extends BaseController {
         ...COOKIE_OPTIONS,
         maxAge: process.env.NODE_ENV === 'production'
           ? EXPIRY_DAYS * 24 * 60 * 60 * 1000
-        // 20 minutes in dev.
+          // 20 minutes in dev.
           : 20 * 60 * 1000
       })
       .json({

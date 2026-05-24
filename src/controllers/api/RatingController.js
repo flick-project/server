@@ -6,8 +6,9 @@
 
 import { BaseController } from './BaseController.js'
 import { createRating, removeRating } from '../../models/ratingModel.js'
-import { fetchRecommendations, fetchMovieKeywords } from '../../services/tmdbServices.js'
-import { createMovie, updateMovieKeywords } from '../../models/movieModel.js'
+import { enrichPool } from '../../services/recommendationService.js'
+import { fetchMovieKeywords } from '../../services/tmdbServices.js'
+import { updateMovieKeywords } from '../../models/movieModel.js'
 
 export class RatingController extends BaseController {
 /**
@@ -23,13 +24,9 @@ export class RatingController extends BaseController {
       // Fetch and store keywords for the recommendation profile.
       const keywordIds = await fetchMovieKeywords(movieId)
       await updateMovieKeywords(movieId, keywordIds)
-      // Store TMDB's recommendations for loved movies.
+      // Store genre-filtered TMDB recommendations for loved movies.
       if (rating === 'love') {
-        const recommended = await fetchRecommendations(movieId)
-        console.log('TMDB recommendations for', movieId, ':', recommended.results.length)
-        for (const movie of recommended.results.filter(m => m.poster_path)) {
-          await createMovie(movie)
-        }
+        await enrichPool(req.user.id, movieId)
       }
       res.status(200).json(result)
     } catch (error) {
