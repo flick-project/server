@@ -3,7 +3,6 @@
  * @module models/movieModel
  * @author Hans Nilsson
  */
-
 import pool from '../config/db.js'
 
 /**
@@ -17,13 +16,11 @@ const validate = (movie) => {
     error.status = 400
     throw error
   }
-
   if (!movie.id) {
     const error = new Error('Movie ID is required.')
     error.status = 400
     throw error
   }
-
   if (!movie.title) {
     const error = new Error('Movie title is required.')
     error.status = 400
@@ -37,10 +34,22 @@ const validate = (movie) => {
  */
 export const createMovie = async (movie) => {
   validate(movie)
-
   await pool.query(
     'INSERT INTO movies (tmdb_id, release_date, title, genre_ids, poster_path, vote_average, vote_count, overview) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (tmdb_id) DO NOTHING',
     [movie.id, movie.release_date, movie.title, movie.genre_ids, movie.poster_path, movie.vote_average, movie.vote_count, movie.overview]
+  )
+}
+
+/**
+ * Stores keyword IDs for a movie if not already set.
+ * @param {number} movieId - The TMDB movie ID.
+ * @param {number[]} keywordIds - The keyword IDs.
+ */
+export const updateMovieKeywords = async (movieId, keywordIds) => {
+  await pool.query(
+    `UPDATE movies SET keyword_ids = $1
+    WHERE tmdb_id = $2 AND keyword_ids = '{}'`,
+    [keywordIds, movieId]
   )
 }
 
@@ -62,6 +71,11 @@ export const findUndiscoveredMovies = async (userId) => {
       SELECT movie_id FROM ratings
       WHERE user_id = $1
     )
+    AND tmdb_id NOT IN (
+      SELECT movie_id FROM favorites
+      WHERE user_id = $1
+    )
+    ORDER BY RANDOM()
     LIMIT 20`,
     [userId]
   )

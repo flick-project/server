@@ -19,14 +19,14 @@ import { createError } from '../utils/errors.js'
 export const createFavorite = async (userId, movie) => {
   await createMovie(movie)
   const countResult = await pool.query(
-    'SELECT COUNT(*) FROM user_favorites WHERE user_id = $1',
+    'SELECT COUNT(*) FROM favorites WHERE user_id = $1',
     [userId]
   )
   if (Number(countResult.rows[0].count) >= 5) {
     throw createError('Favorite limit reached.', 403)
   }
   const result = await pool.query(
-    'INSERT INTO user_favorites (user_id, tmdb_id) VALUES ($1, $2) ON CONFLICT (user_id, tmdb_id) DO NOTHING',
+    'INSERT INTO favorites (user_id, movie_id) VALUES ($1, $2) ON CONFLICT (user_id, movie_id) DO NOTHING',
     [userId, movie.id]
   )
   return result.rowCount > 0
@@ -39,11 +39,11 @@ export const createFavorite = async (userId, movie) => {
  */
 export const findFavorites = async (userId) => {
   const result = await pool.query(
-    `SELECT m.tmdb_id AS id, m.title, release_date, m.poster_path
-     FROM user_favorites uf
-     JOIN movies m ON uf.tmdb_id = m.tmdb_id
-     WHERE uf.user_id = $1
-     ORDER BY uf.created_at ASC`,
+    `SELECT m.tmdb_id AS id, m.title, m.release_date, m.poster_path
+     FROM favorites f
+     JOIN movies m ON f.movie_id = m.tmdb_id
+     WHERE f.user_id = $1
+     ORDER BY f.created_at ASC`,
     [userId]
   )
   return result.rows
@@ -59,8 +59,8 @@ export const removeFavorite = async (userId, movieId) => {
   const validMovieId = validateTmdbId(movieId)
 
   const result = await pool.query(
-    `DELETE FROM user_favorites
-    WHERE user_id = $1 AND tmdb_id = $2`,
+    `DELETE FROM favorites
+    WHERE user_id = $1 AND movie_id = $2`,
     [userId, validMovieId]
   )
 

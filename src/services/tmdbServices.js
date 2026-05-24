@@ -2,7 +2,6 @@
  * @file API service for TMDB's database.
  * @module services/tmdbServices
  * @author Hans Nilsson
- * @version 0.1.0
  */
 
 /**
@@ -28,12 +27,35 @@ const tmdbFetch = async (path, params = {}) => {
 }
 
 /**
- * Fetch a page of popular movies from TMDB's discover endpoint.
+ * Fetch movies from TMDB's discover endpoint, optionally filtered by preferences.
  * @param {number} page - The page number to fetch.
+ * @param {object} [filters] - Genre and keyword filters.
  * @returns {Promise<object>} The discover results.
  */
-export const discoverMovies = async (page) => {
-  return tmdbFetch('/discover/movie', { sort_by: 'popularity.desc', page })
+export const discoverMovies = async (page, filters = {}) => {
+  const params = { sort_by: 'popularity.desc', page, 'vote_count.gte': 50 }
+  if (filters.genres?.length) params.with_genres = filters.genres.join('|')
+  if (filters.without_keywords) params.without_keywords = filters.without_keywords
+  return tmdbFetch('/discover/movie', params)
+}
+
+/**
+ * Fetch TMDB's recommendations for a movie.
+ * @param {number} movieId - The TMDB movie ID.
+ * @returns {Promise<object>} The recommended movies.
+ */
+export const fetchRecommendations = async (movieId) => {
+  return tmdbFetch(`/movie/${movieId}/recommendations`)
+}
+
+/**
+ * Fetch keyword IDs for a movie.
+ * @param {number} movieId - The TMDB movie ID.
+ * @returns {Promise<number[]>} The keyword IDs.
+ */
+export const fetchMovieKeywords = async (movieId) => {
+  const data = await tmdbFetch(`/movie/${movieId}/keywords`)
+  return data.keywords.map(keyword => keyword.id)
 }
 
 /**
