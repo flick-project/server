@@ -1,7 +1,7 @@
 {
   "name": "flick-server",
   "private": true,
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "Backend API for Flick, built with Express and PostgreSQL.",
   "author": "Hans Nilsson",
   "license": "MIT",
