@@ -40,12 +40,16 @@ export const discoverMovies = async (page, filters = {}) => {
 }
 
 /**
- * Fetch TMDB's recommendations for a movie.
+ * Fetch TMDB's recommendations for a movie, filtered by positive genres.
  * @param {number} movieId - The TMDB movie ID.
- * @returns {Promise<object>} The recommended movies.
+ * @param {Set<number>} positiveGenres - Genre IDs to filter by.
+ * @returns {Promise<object[]>} The filtered recommended movies.
  */
-export const fetchRecommendations = async (movieId) => {
-  return tmdbFetch(`/movie/${movieId}/recommendations`)
+export const fetchRecommendations = async (movieId, positiveGenres) => {
+  const data = await tmdbFetch(`/movie/${movieId}/recommendations`)
+  return data.results.filter(m =>
+    m.poster_path && m.genre_ids.some(id => positiveGenres.has(id))
+  )
 }
 
 /**
