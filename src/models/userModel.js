@@ -2,7 +2,6 @@
  * @file Defines the user model.
  * @module models/userModel
  * @author Hans Nilsson
- * @version 0.1.0
  */
 
 import bcrypt from 'bcryptjs'
@@ -100,4 +99,23 @@ export const authenticate = async (email, password) => {
   }
 
   return { id: user.id, email: user.email, display_name: user.display_name, created_at: user.created_at }
+}
+
+/**
+ * Gets the discover progress page for a user.
+ * @param {number} userId - The user's ID.
+ * @returns {Promise<number>} The current discover page.
+ */
+export const findDiscoverProgress = async (userId) => {
+  const result = await pool.query('SELECT discover_progress FROM users WHERE id = $1', [userId])
+  return result.rows[0].discover_progress
+}
+
+/**
+ * Sets the discover progress page for a user.
+ * @param {number} userId - The user's ID.
+ * @param {number} page - The new page number.
+ */
+export const setDiscoverProgress = async (userId, page) => {
+  await pool.query('UPDATE users SET discover_progress = $1 WHERE id = $2', [page, userId])
 }
