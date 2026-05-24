@@ -8,6 +8,8 @@ import { BaseController } from './BaseController.js'
 import { createFavorite, findFavorites, removeFavorite } from '../../models/favoriteModel.js'
 import { findProfileInfo, findStats } from '../../models/profileModel.js'
 import { gravatarUrl } from '../../utils/gravatar.js'
+import { fetchRecommendations, fetchMovieKeywords } from '../../services/tmdbServices.js'
+import { createMovie, updateMovieKeywords } from '../../models/movieModel.js'
 
 export class UserController extends BaseController {
   /**
@@ -37,10 +39,22 @@ export class UserController extends BaseController {
    */
   async addFavorite (req, res, next) {
     try {
-      const success = await createFavorite(req.user.id, req.body.movie)
-      success
-        ? res.status(201).json({ message: 'Favorite saved.' })
-        : res.status(409).json({ message: 'Duplicate skipped.' })
+      const movie = req.body.movie
+      const success = await createFavorite(req.user.id, movie)
+      if (success) {
+        // Fetch and store keywords for the recommendation profile.
+        const keywordIds = await fetchMovieKeywords(movie.id)
+        await updateMovieKeywords(movie.id, keywordIds)
+        // Store TMDB's recommendations for favorited movies.
+        const recommended = await fetchRecommendations(movie.id)
+        console.log('TMDB recommendations for favorite', movie.id, ':', recommended.results.length)
+        for (const m of recommended.results.filter(m => m.poster_path)) {
+          await createMovie(m)
+        }
+        res.status(201).json({ message: 'Favorite saved.' })
+      } else {
+        res.status(409).json({ message: 'Duplicate skipped.' })
+      }
     } catch (error) {
       this.handleControllerError(error, 'Failed to save favorite.', next)
     }
