@@ -36,8 +36,6 @@ export class MovieController extends BaseController {
           const scores = await findUserPreferences(req.user.id)
           filters = this.#buildDiscoverFilters(scores)
           page = await findDiscoverProgress(req.user.id)
-          console.log('Filters:', filters)
-          console.log('Starting page:', page)
         }
         // Retry up to 5 times if restocked movies are all duplicates.
         let attempts = 0
@@ -45,8 +43,6 @@ export class MovieController extends BaseController {
           let tmdbMovies
           if (req.user) {
             tmdbMovies = await discoverMovies(page, filters ?? {})
-            console.log('Discover returned:', tmdbMovies.results.length, 'movies from page', page)
-            console.log('Pool after restock:', movies.length, '| Attempt:', attempts + 1)
             page++
           } else {
             tmdbMovies = await discoverMovies(1)
@@ -66,7 +62,6 @@ export class MovieController extends BaseController {
           attempts++
         }
         if (req.user) await setDiscoverProgress(req.user.id, page)
-        console.log('Final page:', page)
       }
       res.status(200).json({ movies })
     } catch (error) {

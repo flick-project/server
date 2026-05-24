@@ -1,9 +1,7 @@
-import { describe, it, before, after } from 'node:test'
+import { describe, it, before, after, mock } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
 import pool from '../../src/config/db.js'
-import app from '../../src/app.js'
-import { createMovie } from '../../src/models/movieModel.js'
 
 const testMovie = {
   id: -1,
@@ -15,6 +13,18 @@ const testMovie = {
   vote_count: 100,
   overview: 'A test movie for unit testing.'
 }
+
+await mock.module('../../src/services/tmdbServices.js', {
+  namedExports: {
+    discoverMovies: mock.fn(async () => ({ results: [] })),
+    searchMovies: mock.fn(async () => ({ results: [] })),
+    fetchMovieKeywords: mock.fn(async () => []),
+    fetchRecommendations: mock.fn(async () => ({ results: [] }))
+  }
+})
+
+const { default: app } = await import('../../src/app.js')
+const { createMovie } = await import('../../src/models/movieModel.js')
 
 // Create test movie and test user.
 before(async () => {
