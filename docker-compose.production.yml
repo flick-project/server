@@ -10,6 +10,7 @@ services:
       - PORT=3000
       - JWT_LIFE=10m
       - CORS_ORIGIN=https://flick.lingon.cloud
+      - NODE_ENV=production
     networks:
       - flick-network
       - proxy
