@@ -1,8 +1,10 @@
-import { describe, it, before, after } from 'node:test'
+import { describe, it, before, after, mock } from 'node:test'
 import assert from 'node:assert'
 import request from 'supertest'
 import app from '../../src/app.js'
 import pool from '../../src/config/db.js'
+
+mock.method(console, 'error', () => {})
 
 before(async () => {
   await pool.query('DELETE FROM refresh_tokens')

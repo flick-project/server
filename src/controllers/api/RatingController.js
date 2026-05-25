@@ -26,7 +26,7 @@ export class RatingController extends BaseController {
       await updateMovieKeywords(movieId, keywordIds)
       // Store genre-filtered TMDB recommendations for loved movies.
       if (rating === 'love') {
-        await enrichPool(req.user.id, movieId)
+        enrichPool(req.user.id, movieId).catch(console.error)
       }
       res.status(200).json(result)
     } catch (error) {
