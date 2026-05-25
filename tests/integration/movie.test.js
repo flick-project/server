@@ -3,55 +3,55 @@ import assert from 'node:assert'
 import request from 'supertest'
 import pool from '../../src/config/db.js'
 
-const testMovieA = {
-  id: -1,
+mock.method(console, 'error', () => {})
+
+// Generate 20 test movies to fill the discovery pool.
+const testMovies = Array.from({ length: 20 }, (_, i) => ({
+  id: -(i + 1),
   release_date: '2026-01-01',
-  title: 'TEST_MOVIE_A',
+  title: `TEST_MOVIE_${i + 1}`,
   genre_ids: [28, 12],
   poster_path: '/test.jpg',
   vote_average: 7.5,
   vote_count: 100,
   overview: 'A test movie.'
-}
+}))
 
-const testMovieB = {
-  id: -2,
-  release_date: '2026-01-01',
-  title: 'TEST_MOVIE_B',
-  genre_ids: [28, 12],
-  poster_path: '/test.jpg',
-  vote_average: 7.5,
-  vote_count: 100,
-  overview: 'Another test movie.'
-}
-
-const mockFetch = mock.fn(async () => ({
-  results: [testMovieA, testMovieB]
+const mockDiscover = mock.fn(async () => ({
+  results: testMovies
 }))
 
 // Must be defined before app import to intercept TMDB calls.
 await mock.module('../../src/services/tmdbServices.js', {
   namedExports: {
-    discoverMovies: mockFetch,
-    searchMovies: mockFetch,
+    discoverMovies: mockDiscover,
+    searchMovies: mock.fn(async () => ({ results: [] })),
     fetchMovieKeywords: mock.fn(async () => []),
-    fetchRecommendations: mock.fn(async () => ({ results: [] }))
+    fetchRecommendations: mock.fn(async () => [])
   }
 })
 
 const { default: app } = await import('../../src/app.js')
 
+// Insert test movies directly into the DB.
+const insertTestMovies = async () => {
+  for (const movie of testMovies) {
+    await pool.query(
+      'INSERT INTO movies (tmdb_id, release_date, title, genre_ids, poster_path, vote_average, vote_count, overview) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT DO NOTHING',
+      [movie.id, movie.release_date, movie.title, movie.genre_ids, movie.poster_path, movie.vote_average, movie.vote_count, movie.overview]
+    )
+  }
+}
+
 before(async () => {
   await pool.query('DELETE FROM movie_interactions')
   await pool.query('DELETE FROM movies')
   await pool.query("DELETE FROM users WHERE email LIKE '%@integration.test'")
-
   await request(app)
     .post('/api/v1/auth/register')
     .send({ email: 'discover@integration.test', displayName: 'DiscoverUser', password: 'Secret12345' })
 })
 
-// Clean slate for each test.
 beforeEach(async () => {
   await pool.query('DELETE FROM movie_interactions')
   await pool.query('DELETE FROM movies')
@@ -66,7 +66,6 @@ after(async () => {
 
 describe('GET /api/v1/movies/discover', () => {
   let token
-
   before(async () => {
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
@@ -78,22 +77,18 @@ describe('GET /api/v1/movies/discover', () => {
     const res = await request(app)
       .get('/api/v1/movies/discover')
     assert.strictEqual(res.status, 200)
-    assert.strictEqual(res.body.movies.length, 2)
+    assert.strictEqual(res.body.movies.length, 20)
   })
 
   it('should filter out interacted movies for authenticated user', async () => {
-    // Stock the DB with test movies.
-    await request(app)
-      .get('/api/v1/movies/discover')
-      .set('Authorization', token)
-
-    // Save movie A.
+    // Insert movies directly to avoid restock loop dependency.
+    await insertTestMovies()
+    // Save movie -1.
     await request(app)
       .post('/api/v1/movies/interact')
       .set('Authorization', token)
       .send({ movieId: -1, interaction: 'saved' })
-
-    // Movie A should be filtered out.
+    // Movie -1 should be filtered out.
     const res = await request(app)
       .get('/api/v1/movies/discover')
       .set('Authorization', token)
@@ -104,7 +99,7 @@ describe('GET /api/v1/movies/discover', () => {
   })
 
   it('should return 500 when TMDB fetch fails', async () => {
-    mockFetch.mock.mockImplementationOnce(() => {
+    mockDiscover.mock.mockImplementationOnce(() => {
       throw new Error('TMDB unavailable')
     })
     const res = await request(app)
