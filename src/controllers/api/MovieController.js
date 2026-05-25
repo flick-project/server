@@ -37,18 +37,18 @@ export class MovieController extends BaseController {
           filters = this.#buildDiscoverFilters(scores)
           page = await findDiscoverProgress(req.user.id)
         }
-        // Retry up to 5 times if restocked movies are all duplicates.
-        let attempts = 0
-        while (movies.length < DISCOVER_POOL && attempts < 5) {
+        // Retry until no more pages if restocked movies are all duplicates.
+        // Allow a small buffer to avoid restocking when one movie short.
+        // This makes testing easier as well.
+        while (movies.length < DISCOVER_POOL - 1) {
           let tmdbMovies
           if (req.user) {
             tmdbMovies = await discoverMovies(page, filters ?? {})
             page++
           } else {
             tmdbMovies = await discoverMovies(1)
-            // No retry for unauthenticated users.
-            attempts = 5
           }
+          if (!tmdbMovies.results.length) break
           const validMovies = tmdbMovies.results.filter(movie => movie.poster_path)
           for (const movie of validMovies) {
             await createMovie(movie)
@@ -59,7 +59,6 @@ export class MovieController extends BaseController {
           } else {
             movies = tmdbMovies.results
           }
-          attempts++
         }
         if (req.user) await setDiscoverProgress(req.user.id, page)
       }
@@ -122,7 +121,8 @@ export class MovieController extends BaseController {
 
     const filters = {}
     const topGenres = Object.entries(scores.genres)
-      .filter(([, score]) => score > 0)
+      // Exclude drama since it's too generic to be useful.
+      .filter(([id, score]) => score > 0 && id !== '18')
       .sort((a, b) => b[1] - a[1])
       .slice(0, recommendation.genreLimit)
       .map(([id]) => id)
@@ -134,6 +134,9 @@ export class MovieController extends BaseController {
       .slice(0, recommendation.negativeKeywordLimit)
       .map(([id]) => id)
     if (negativeKeywords.length) filters.without_keywords = negativeKeywords.join('|')
+
+    // const genreMap = { 28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime', 99: 'Documentary', 18: 'Drama', 10751: 'Family', 14: 'Fantasy', 36: 'History', 27: 'Horror', 10402: 'Music', 9648: 'Mystery', 10749: 'Romance', 878: 'Sci-Fi', 10770: 'TV Movie', 53: 'Thriller', 10752: 'War', 37: 'Western' }
+    // console.log('Top genres:', topGenres.map(id => genreMap[id] || id))
 
     return filters
   }

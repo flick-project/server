@@ -8,8 +8,8 @@ export const recommendation = {
     love: 4,
     like: 2,
     saved: 1,
-    skipped: 0,
     removed: 0,
+    skipped: 0,
     dislike: -2,
     hate: -4
   },
