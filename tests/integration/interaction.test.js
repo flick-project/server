@@ -3,6 +3,8 @@ import assert from 'node:assert'
 import request from 'supertest'
 import pool from '../../src/config/db.js'
 
+mock.method(console, 'error', () => {})
+
 const testMovie = {
   id: -1,
   release_date: '2026-01-01',

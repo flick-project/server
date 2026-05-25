@@ -13,18 +13,17 @@ import { fetchMovieKeywords } from '../../services/tmdbServices.js'
 import { updateMovieKeywords } from '../../models/movieModel.js'
 
 export class UserController extends BaseController {
-  /**
-   * Save a list of favorite movies with the user.
-   * @param {object} req - Express's request object.
-   * @param {object} res - Express's response object.
-   * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
-   */
+/**
+ * Save a list of favorite movies during onboarding.
+ * @param {object} req - Express's request object.
+ * @param {object} res - Express's response object.
+ * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
+ */
   async saveFavorites (req, res, next) {
-    const { movies } = req.body
-
     try {
+      const { movies } = req.body
       for (const movie of movies) {
-        await createFavorite(req.user.id, movie)
+        await this.#saveFavorite(req.user.id, movie)
       }
       res.status(201).json({ message: 'Favorites saved.' })
     } catch (error) {
@@ -43,11 +42,9 @@ export class UserController extends BaseController {
       const movie = req.body.movie
       const success = await createFavorite(req.user.id, movie)
       if (success) {
-        // Fetch and store keywords for the recommendation profile.
         const keywordIds = await fetchMovieKeywords(movie.id)
         await updateMovieKeywords(movie.id, keywordIds)
-        // Store genre-filtered TMDB recommendations.
-        await enrichPool(req.user.id, movie.id)
+        enrichPool(req.user.id, movie.id).catch(console.error)
         res.status(201).json({ message: 'Favorite saved.' })
       } else {
         res.status(409).json({ message: 'Duplicate skipped.' })
@@ -131,5 +128,24 @@ export class UserController extends BaseController {
     } catch (error) {
       this.handleControllerError(error, 'Failed to fetch stats.', next)
     }
+  }
+
+  /**
+   * Save a single favorite with keywords and recommendations.
+   * Awaits enrichPool so onboarding completes with a full discovery pool.
+   * @param {number} userId - The user's ID.
+   * @param {object} movie - The movie object.
+   * @returns {Promise<boolean>} True if inserted, false if duplicate.
+   */
+  async #saveFavorite (userId, movie) {
+    const success = await createFavorite(userId, movie)
+    if (success) {
+      const keywordIds = await fetchMovieKeywords(movie.id)
+      // Fetch and store keywords for the recommendation profile.
+      await updateMovieKeywords(movie.id, keywordIds)
+      // Store genre-filtered TMDB recommendations.
+      await enrichPool(userId, movie.id)
+    }
+    return success
   }
 }
