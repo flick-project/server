@@ -252,3 +252,5 @@ $RECYCLE.BIN/
 
 imdbratings.csv
 import-ratings.js
+
+*.webp
