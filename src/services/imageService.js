@@ -9,7 +9,7 @@ import { createReadStream } from 'fs'
 import { Readable } from 'stream'
 import sharp from 'sharp'
 
-const POSTERS_DIR = './posters'
+const POSTERS_DIR = process.env.POSTER_DIR || './posters'
 const VALID_WIDTHS = [92, 154, 185, 300, 500, 780]
 
 const inFlight = new Map()

@@ -53,6 +53,21 @@ export const createUser = async (email, displayName, password) => {
 }
 
 /**
+ * Deletes a user by id.
+ * Related data is removed automatically via cascade deletes.
+ * @param {number} id - The user id.
+ * @returns {boolean} True if a user was deleted.
+ */
+export const deleteUser = async (id) => {
+  const result = await pool.query(
+    `DELETE FROM users
+    WHERE id = $1`,
+    [id]
+  )
+  return result.rowCount > 0
+}
+
+/**
  * Find a user by id.
  * @param {string} id - The id to search for.
  * @returns {object | undefined} The user row, or undefined if not found.
