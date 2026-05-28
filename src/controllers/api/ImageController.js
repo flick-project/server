@@ -7,6 +7,8 @@
 import { BaseController } from './BaseController.js'
 import { getPosterStream } from '../../services/imageService.js'
 
+const POSTER_ID_PATTERN = /^[a-zA-Z0-9]+\.\w+$/
+
 export class ImageController extends BaseController {
   /**
    * Serves a movie poster image.
@@ -16,8 +18,13 @@ export class ImageController extends BaseController {
    * @param {object} req - Express's request object.
    * @param {object} res - Express's response object.
    * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
+   * @returns {void}
    */
   async poster (req, res, next) {
+    const { id } = req.params
+    if (!POSTER_ID_PATTERN.test(id)) {
+      return res.status(400).json({ message: 'Invalid poster ID.' })
+    }
     try {
       const posterPath = '/' + req.params.id
       const width = parseInt(req.query.w) || 300
