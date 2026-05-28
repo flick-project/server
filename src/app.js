@@ -2,7 +2,6 @@
  * @file Configures the Express application.
  * @module src/app
  * @author Hans Nilsson
- * @version 0.1.0
  */
 
 import cookieParser from 'cookie-parser'

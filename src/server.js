@@ -7,6 +7,10 @@
 
 import app from './app.js'
 import pool from './config/db.js'
+import fs from 'fs/promises'
+
+// Create the poster cache directory.
+await fs.mkdir(process.env.POSTER_DIR || './posters', { recursive: true })
 
 const port = process.env.PORT || 3000
 
