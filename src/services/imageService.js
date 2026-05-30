@@ -30,7 +30,7 @@ const fetchBuffer = async (posterPath, width) => {
 const saveAsWebp = async (buffer, filePath) => {
   try {
     const temp = `${filePath}.tmp`
-    await sharp(buffer).webp({ quality: 85 }).toFile(temp)
+    await sharp(buffer).webp({ quality: 75 }).toFile(temp)
     await fs.rename(temp, filePath)
     console.log(`Saved WebP: ${filePath}`)
   } catch (error) {

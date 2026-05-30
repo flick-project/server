@@ -10,6 +10,7 @@ import { BaseController } from './BaseController.js'
 import { createError } from '../../utils/errors.js'
 import { createUser, authenticate, findById } from '../../models/userModel.js'
 import { createToken, findValid, deleteToken, EXPIRY_DAYS } from '../../models/refreshTokenModel.js'
+import { gravatarUrl } from '../../utils/gravatar.js'
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -109,7 +110,8 @@ export class AuthController extends BaseController {
    * @param {number} status - HTTP status code for the response.
    */
   async #sendAuthResponse (res, user, status) {
-    const accessToken = jwt.sign({ id: user.id, email: user.email, display_name: user.display_name },
+    const accessToken = jwt.sign(
+      { id: user.id, email: user.email, display_name: user.display_name },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_LIFE }
     )
@@ -121,11 +123,11 @@ export class AuthController extends BaseController {
         ...COOKIE_OPTIONS,
         maxAge: process.env.NODE_ENV === 'production'
           ? EXPIRY_DAYS * 24 * 60 * 60 * 1000
-          // 20 minutes in dev.
           : 20 * 60 * 1000
       })
       .json({
-        access_token: accessToken
+        access_token: accessToken,
+        gravatar: gravatarUrl(user.email)
       })
   }
 }
