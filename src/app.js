@@ -38,6 +38,11 @@ app.use(rateLimit({
 // Parse cookie header and populate req.cookies.
 app.use(cookieParser())
 
+app.use('/assets', express.static('dist/assets', {
+  maxAge: '30d',
+  immutable: true
+}))
+
 // Parse requests of the content type application/json.
 app.use(express.json({ limit: '100kb' }))
 

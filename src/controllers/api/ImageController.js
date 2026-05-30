@@ -33,8 +33,8 @@ export class ImageController extends BaseController {
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
       res.setHeader('Content-Type', contentType)
 
-      // WebP = cache 30 days; JPEG = no cache (so browser gets WebP next time).
-      res.setHeader('Cache-Control', contentType === 'image/webp' ? 'public, max-age=2592000' : 'no-cache')
+      const maxAge = 60 * 60 * 24 * 30 // 30 days
+      res.setHeader('Cache-Control', `public, max-age=${maxAge}, immutable`)
 
       stream.pipe(res)
     } catch (error) {
