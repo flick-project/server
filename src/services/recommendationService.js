@@ -27,19 +27,38 @@ export const enrichPool = async (userId, movieId) => {
   // Fetch recommendations and take the first 5.
   const recommendations = await fetchRecommendations(movieId)
   const candidates = recommendations.slice(0, 5)
-  let stored = 0
-  // Fetch keywords for each candidate and filter by negative keywords.
-  for (const movie of candidates) {
-    const keywordIds = await fetchMovieKeywords(movie.id)
-    const hasNegativeKeyword = keywordIds.some(id => negativeKeywords.has(id))
-    if (!hasNegativeKeyword) {
+
+  // Fetch keywords for all candidates in parallel.
+  const keywordResults = await Promise.all(
+    candidates.map(async (movie) => {
+      const keywordIds = await fetchMovieKeywords(movie.id)
+      return { id: movie.id, keywordIds }
+    })
+  )
+  const keywordsByMovieId = Object.fromEntries(
+    keywordResults.map(({ id, keywordIds }) => [id, keywordIds])
+  )
+  const filteredMovies = filterCandidates(candidates, keywordsByMovieId, negativeKeywords)
+
+  // Save filtered movies and their keywords to the pool.
+  await Promise.all(
+    filteredMovies.map(async (movie) => {
       await createMovie(movie)
-      await updateMovieKeywords(movie.id, keywordIds)
-      stored++
-    } else {
-      // console.log('Filtered out:', movie.title, '| Negative keyword match')
-    }
-  }
-  console.log('Negative keywords:', [...negativeKeywords])
-  console.log('enrichPool:', movieId, '| Candidates:', candidates.length, '| Stored:', stored)
+      await updateMovieKeywords(movie.id, keywordsByMovieId[movie.id])
+    })
+  )
+}
+
+/**
+ * Filters recommendation candidates by removing movies with negative keywords.
+ * @param {object[]} candidates - TMDB movie objects to filter.
+ * @param {Map<number, number[]>} keywordsByMovieId - Map of movie ID to keyword IDs.
+ * @param {Set<number>} negativeKeywords - Set of keyword IDs to exclude.
+ * @returns {object[]} Candidates with no negative keyword matches.
+ */
+export const filterCandidates = (candidates, keywordsByMovieId, negativeKeywords) => {
+  return candidates.filter(movie => {
+    const keywords = keywordsByMovieId[movie.id] ?? []
+    return !keywords.some(id => negativeKeywords.has(id))
+  })
 }
