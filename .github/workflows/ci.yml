@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*.*.*']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: flick
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: flick_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    env:
+      DATABASE_URL: postgresql://flick:test@localhost:5432/flick_test
+      PORT: 3000
+      JWT_SECRET: test-secret
+      JWT_LIFE: 10m
+      TMDB_API_KEY: fake-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - run: PGPASSWORD=test psql -h localhost -U flick -d flick_test -f sql/schema.sql
+      - run: node --experimental-test-module-mocks --test --test-concurrency=1 tests/**/*.test.js
+      - run: npm run lint
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          eval $(ssh-agent -s)
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | base64 -d | tr -d '\r' > ~/.ssh_key
+          chmod 600 ~/.ssh_key
+          ssh-add ~/.ssh_key
+          rm ~/.ssh_key
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          ssh-keyscan -H ${{ vars.PRODUCTION_HOST }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy
+        run: |
+          unset DOCKER_HOST
+          docker context create production --docker "host=ssh://hasse@${{ vars.PRODUCTION_HOST }}"
+          docker context use production
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+          echo "TMDB_API_KEY=${{ secrets.TMDB_API_KEY }}" >> .env
+          docker compose -f docker-compose.production.yml up -d --build
+          docker system prune -f
