@@ -14,5 +14,5 @@ export const recommendation = {
     hate: -4
   },
   genreLimit: 5,
-  negativeKeywordLimit: 10
+  negativeKeywordLimit: 20
 }
