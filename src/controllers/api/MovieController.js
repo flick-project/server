@@ -122,7 +122,7 @@ export class MovieController extends BaseController {
     const filters = {}
     const topGenres = Object.entries(scores.genres)
       // Exclude drama since it's too generic to be useful.
-      .filter(([id, score]) => score > 0 && id !== '18')
+      .filter(([id, score]) => score > 0 && !recommendation.excludedGenres.includes(id))
       .sort((a, b) => b[1] - a[1])
       .slice(0, recommendation.genreLimit)
       .map(([id]) => id)

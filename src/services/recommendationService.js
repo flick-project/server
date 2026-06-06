@@ -26,7 +26,7 @@ export const enrichPool = async (userId, movieId) => {
   )
   // Fetch recommendations and take the first 5.
   const recommendations = await fetchRecommendations(movieId)
-  const candidates = recommendations.slice(0, 5)
+  const candidates = recommendations.filter(m => m.poster_path).slice(0, 5)
 
   // Fetch keywords for all candidates in parallel.
   const keywordResults = await Promise.all(
