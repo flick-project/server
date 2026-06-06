@@ -17,51 +17,25 @@ const DISCOVER_POOL = 20
 export class MovieController extends BaseController {
   /**
    * Fetches a list of movies for discovery.
-   * If the user is authenticated, it fetches movies they haven't interacted with yet.
-   * If the pool of undiscovered movies is low, it fetches more from TMDB and stores them in the database.
+   * If the user is authenticated, fetches movies they haven't interacted with yet.
+   * If the pool of undiscovered movies is low, fetches more from TMDB and stores them in the database.
    * @param {object} req - Express's request object.
    * @param {object} res - Express's response object.
-   * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
+   * @param {(error: Error) => void} next - Express's next function.
+   * @returns {void}
    */
   async discover (req, res, next) {
     try {
-      let movies = []
-      if (req.user) {
-        movies = await findUndiscoveredMovies(req.user.id)
+      if (!req.user) {
+        const { results } = await discoverMovies(1)
+        return res.status(200).json({ movies: results })
       }
+
+      let movies = await findUndiscoveredMovies(req.user.id)
       if (movies.length < DISCOVER_POOL) {
-        let filters = null
-        let page = 1
-        if (req.user) {
-          const scores = await findUserPreferences(req.user.id)
-          filters = this.#buildDiscoverFilters(scores)
-          page = await findDiscoverProgress(req.user.id)
-        }
-        // Retry until no more pages if restocked movies are all duplicates.
-        // Allow a small buffer to avoid restocking when one movie short.
-        // This makes testing easier as well.
-        while (movies.length < DISCOVER_POOL - 1) {
-          let tmdbMovies
-          if (req.user) {
-            tmdbMovies = await discoverMovies(page, filters ?? {})
-            page++
-          } else {
-            tmdbMovies = await discoverMovies(1)
-          }
-          if (!tmdbMovies.results.length) break
-          const validMovies = tmdbMovies.results.filter(movie => movie.poster_path)
-          for (const movie of validMovies) {
-            await createMovie(movie)
-          }
-          // Requery to check how many new movies entered the pool.
-          if (req.user) {
-            movies = await findUndiscoveredMovies(req.user.id)
-          } else {
-            movies = tmdbMovies.results
-          }
-        }
-        if (req.user) await setDiscoverProgress(req.user.id, page)
+        movies = await this.#restockPool(req.user.id, movies)
       }
+
       res.status(200).json({ movies })
     } catch (error) {
       this.handleControllerError(error, 'Failed to fetch movies.', next)
@@ -72,7 +46,7 @@ export class MovieController extends BaseController {
    * Registers a user's interaction with a movie.
    * @param {object} req - Express's request object.
    * @param {object} res - Express's response object.
-   * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
+   * @param {(error: Error) => void} next - Express's next function.
    */
   async interact (req, res, next) {
     try {
@@ -90,10 +64,10 @@ export class MovieController extends BaseController {
   }
 
   /**
-   * Search for a movie from TMDB.
+   * Searches for a movie via TMDB.
    * @param {object} req - Express's request object.
    * @param {object} res - Express's response object.
-   * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
+   * @param {(error: Error) => void} next - Express's next function.
    */
   async search (req, res, next) {
     try {
@@ -109,6 +83,39 @@ export class MovieController extends BaseController {
     } catch (error) {
       this.handleControllerError(error, 'Movie search failed.', next)
     }
+  }
+
+  /**
+   * Fetches TMDB pages and stores movies until the pool reaches DISCOVER_POOL.
+   * Skips movies without a poster. Resets page progress when TMDB runs out of pages.
+   * @param {number} userId - The user's ID.
+   * @param {object[]} movies - The current undiscovered movie pool.
+   * @returns {Promise<object[]>} The replenished pool.
+   */
+  async #restockPool (userId, movies) {
+    const scores = await findUserPreferences(userId)
+    const filters = this.#buildDiscoverFilters(scores)
+    let page = await findDiscoverProgress(userId)
+
+    while (movies.length < DISCOVER_POOL - 1) {
+      const { results } = await discoverMovies(page, filters ?? {})
+
+      if (!results.length) {
+        page = 1
+        break
+      }
+
+      const validMovies = results.filter(m => m.poster_path)
+      for (const movie of validMovies) {
+        await createMovie(movie)
+      }
+
+      movies = await findUndiscoveredMovies(userId)
+      page++
+    }
+
+    await setDiscoverProgress(userId, page)
+    return movies
   }
 
   /**
