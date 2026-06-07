@@ -5,7 +5,7 @@
  */
 
 import { fetchMovieKeywords, fetchRecommendations } from './tmdbServices.js'
-import { createMovie, updateMovieKeywords } from '../models/movieModel.js'
+import { create, updateKeywords } from '../models/movieModel.js'
 import { findUserPreferences } from '../models/recommendationModel.js'
 import { recommendation } from '../config/recommendation.js'
 
@@ -43,8 +43,8 @@ export const enrichPool = async (userId, movieId) => {
   // Save filtered movies and their keywords to the pool.
   await Promise.all(
     filteredMovies.map(async (movie) => {
-      await createMovie(movie)
-      await updateMovieKeywords(movie.id, keywordsByMovieId[movie.id])
+      await create(movie)
+      await updateKeywords(movie.id, keywordsByMovieId[movie.id])
     })
   )
 }
@@ -61,4 +61,22 @@ export const filterCandidates = (candidates, keywordsByMovieId, negativeKeywords
     const keywords = keywordsByMovieId[movie.id] ?? []
     return !keywords.some(id => negativeKeywords.has(id))
   })
+}
+
+/**
+ * Processes a movie signal by storing keywords and optionally enriching the discovery pool.
+ * Should be called after any meaningful user-movie interaction (save, rate, favorite).
+ * @param {number} userId - The user's ID.
+ * @param {number} movieId - The TMDB movie ID.
+ * @param {object} [options] - Optional behaviour flags.
+ * @param {boolean} [options.enrich] - Whether to enrich the discovery pool with recommendations.
+ * @param {boolean} [options.awaitEnrich] - Whether to await enrichment (e.g. during onboarding).
+ */
+export const processMovieSignal = async (userId, movieId, { enrich = false, awaitEnrich = false } = {}) => {
+  const keywordIds = await fetchMovieKeywords(movieId)
+  await updateKeywords(movieId, keywordIds)
+  if (enrich) {
+    const job = enrichPool(userId, movieId).catch(console.error)
+    if (awaitEnrich) await job
+  }
 }

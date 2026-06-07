@@ -2,9 +2,7 @@
  * @file Auth controller for handling registration, login, logout and refresh tokens.
  * @module controllers/api/AuthController
  * @author Hans Nilsson
- * @version 0.1.0
  */
-
 import jwt from 'jsonwebtoken'
 import { BaseController } from './BaseController.js'
 import { createError } from '../../utils/errors.js'

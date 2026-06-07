@@ -3,7 +3,6 @@
  * @module controllers/api/ImageController
  * @author Hans Nilsson
  */
-
 import { BaseController } from './BaseController.js'
 import { getPosterStream } from '../../services/imageService.js'
 

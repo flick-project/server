@@ -3,14 +3,12 @@
  * @module controllers/api/MovieController
  * @author Hans Nilsson
  */
-
 import { BaseController } from './BaseController.js'
-import { discoverMovies, searchMovies, fetchMovieKeywords } from '../../services/tmdbServices.js'
-import { createMovie, findUndiscoveredMovies, updateMovieKeywords } from '../../models/movieModel.js'
-import { createInteraction } from '../../models/interactionModel.js'
-import { recommendation } from '../../config/recommendation.js'
-import { findUserPreferences } from '../../models/recommendationModel.js'
+import { create, findUndiscovered } from '../../models/movieModel.js'
 import { findDiscoverProgress, setDiscoverProgress } from '../../models/userModel.js'
+import { findUserPreferences } from '../../models/recommendationModel.js'
+import { discoverMovies, searchMovies } from '../../services/tmdbServices.js'
+import { recommendation } from '../../config/recommendation.js'
 
 const DISCOVER_POOL = 20
 
@@ -31,7 +29,7 @@ export class MovieController extends BaseController {
         return res.status(200).json({ movies: results })
       }
 
-      let movies = await findUndiscoveredMovies(req.user.id)
+      let movies = await findUndiscovered(req.user.id)
       if (movies.length < DISCOVER_POOL) {
         movies = await this.#restockPool(req.user.id, movies)
       }
@@ -39,27 +37,6 @@ export class MovieController extends BaseController {
       res.status(200).json({ movies })
     } catch (error) {
       this.handleControllerError(error, 'Failed to fetch movies.', next)
-    }
-  }
-
-  /**
-   * Registers a user's interaction with a movie.
-   * @param {object} req - Express's request object.
-   * @param {object} res - Express's response object.
-   * @param {(error: Error) => void} next - Express's next function.
-   */
-  async interact (req, res, next) {
-    try {
-      const { movieId, interaction } = req.body
-      await createInteraction({ movieId, userId: req.user.id, interaction })
-      // Fetch and store keywords for the recommendation profile.
-      if (interaction === 'saved') {
-        const keywordIds = await fetchMovieKeywords(movieId)
-        await updateMovieKeywords(movieId, keywordIds)
-      }
-      res.status(200).json({ message: 'Interaction saved.' })
-    } catch (error) {
-      this.handleControllerError(error, 'Failed to register interaction.', next)
     }
   }
 
@@ -107,10 +84,10 @@ export class MovieController extends BaseController {
 
       const validMovies = results.filter(m => m.poster_path)
       for (const movie of validMovies) {
-        await createMovie(movie)
+        await create(movie)
       }
 
-      movies = await findUndiscoveredMovies(userId)
+      movies = await findUndiscovered(userId)
       page++
     }
 

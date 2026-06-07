@@ -3,12 +3,9 @@
  * @module controllers/api/RatingController
  * @author Hans Nilsson
  */
-
 import { BaseController } from './BaseController.js'
 import { createRating, removeRating } from '../../models/ratingModel.js'
-import { enrichPool } from '../../services/recommendationService.js'
-import { fetchMovieKeywords } from '../../services/tmdbServices.js'
-import { updateMovieKeywords } from '../../models/movieModel.js'
+import { processMovieSignal } from '../../services/recommendationService.js'
 
 export class RatingController extends BaseController {
 /**
@@ -21,13 +18,7 @@ export class RatingController extends BaseController {
     try {
       const { movieId, rating } = req.body
       const result = await createRating(req.user.id, movieId, rating)
-      // Fetch and store keywords for the recommendation profile.
-      const keywordIds = await fetchMovieKeywords(movieId)
-      await updateMovieKeywords(movieId, keywordIds)
-      // Store genre-filtered TMDB recommendations for loved movies.
-      if (rating === 'love') {
-        enrichPool(req.user.id, movieId).catch(console.error)
-      }
+      processMovieSignal(req.user.id, movieId, { enrich: rating === 'love' })
       res.status(200).json(result)
     } catch (error) {
       this.handleControllerError(error, 'Failed to register rating.', next)
@@ -35,12 +26,12 @@ export class RatingController extends BaseController {
   }
 
   /**
-   * Deletes a movie rating.
+   * Removes a movie rating.
    * @param {object} req - Express's request object.
    * @param {object} res - Express's response object.
    * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
    */
-  async delete (req, res, next) {
+  async remove (req, res, next) {
     try {
       await removeRating(req.user.id, req.params.movieId)
       res.status(204).end()

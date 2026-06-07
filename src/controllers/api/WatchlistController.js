@@ -3,9 +3,8 @@
  * @module controllers/api/WatchlistController
  * @author Hans Nilsson
  */
-
-import { findWatchlist, removeFromWatchlist } from '../../models/watchlistModel.js'
 import { BaseController } from './BaseController.js'
+import { findWatchlist, removeFromWatchlist } from '../../models/watchlistModel.js'
 
 export class WatchlistController extends BaseController {
   /**
@@ -14,7 +13,7 @@ export class WatchlistController extends BaseController {
    * @param {object} res - Express's response object.
    * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
    */
-  async getWatchlist (req, res, next) {
+  async getAll (req, res, next) {
     try {
       const data = await findWatchlist(req.user.id, req.query.page, req.query.limit)
       res.status(200).json({ movies: data.movies, total: data.total })
@@ -30,7 +29,7 @@ export class WatchlistController extends BaseController {
    * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
    * @returns {void}
    */
-  async deleteFromWatchlist (req, res, next) {
+  async remove (req, res, next) {
     try {
       const result = await removeFromWatchlist(req.user.id, req.params.movieId)
       if (!result) {
