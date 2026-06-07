@@ -26,14 +26,14 @@ await mock.module('../../src/services/tmdbServices.js', {
 })
 
 const { default: app } = await import('../../src/app.js')
-const { createMovie } = await import('../../src/models/movieModel.js')
+const { create } = await import('../../src/models/movieModel.js')
 
 // Create test movie and test user.
 before(async () => {
   await pool.query('DELETE FROM movie_interactions')
   await pool.query('DELETE FROM movies')
   await pool.query('DELETE FROM users')
-  await createMovie(testMovie)
+  await create(testMovie)
   await request(app)
     .post('/api/v1/auth/register')
     .send({ email: 'register@integration.test', displayName: 'RegUser', password: 'Secret12345' })
@@ -46,7 +46,7 @@ after(async () => {
   await pool.end()
 })
 
-describe('POST /api/v1/movies/interact', () => {
+describe('POST /api/v1/interactions', () => {
   let token
 
   before(async () => {
@@ -58,7 +58,7 @@ describe('POST /api/v1/movies/interact', () => {
 
   it('should return 200 on valid interaction', async () => {
     const res = await request(app)
-      .post('/api/v1/movies/interact')
+      .post('/api/v1/interactions')
       .set('Authorization', token)
       .send({ movieId: -1, interaction: 'saved' })
     assert.strictEqual(res.status, 200)
@@ -66,14 +66,14 @@ describe('POST /api/v1/movies/interact', () => {
 
   it('should return 401 without auth token', async () => {
     const res = await request(app)
-      .post('/api/v1/movies/interact')
+      .post('/api/v1/interactions')
       .send({ movieId: -1, interaction: 'saved' })
     assert.strictEqual(res.status, 401)
   })
 
   it('should reject invalid interaction type', async () => {
     const res = await request(app)
-      .post('/api/v1/movies/interact')
+      .post('/api/v1/interactions')
       .set('Authorization', token)
       .send({ movieId: -1, interaction: 'saevd' })
     assert.strictEqual(res.status, 400)

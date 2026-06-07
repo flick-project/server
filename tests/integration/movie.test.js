@@ -85,7 +85,7 @@ describe('GET /api/v1/movies/discover', () => {
     await insertTestMovies()
     // Save movie -1.
     await request(app)
-      .post('/api/v1/movies/interact')
+      .post('/api/v1/interactions')
       .set('Authorization', token)
       .send({ movieId: -1, interaction: 'saved' })
     // Movie -1 should be filtered out.

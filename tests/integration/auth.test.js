@@ -89,4 +89,36 @@ describe('Protected routes', () => {
       .set('Cookie', loginRes.headers['set-cookie'])
     assert.strictEqual(res.status, 201)
   })
+
+  describe('POST /api/v1/auth/logout', () => {
+    it('should invalidate refresh token on logout', async () => {
+      const loginRes = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: 'existing@integration.test', password: 'Secret12345' })
+
+      await request(app)
+        .post('/api/v1/auth/logout')
+        .set('Cookie', loginRes.headers['set-cookie'])
+
+      const res = await request(app)
+        .post('/api/v1/auth/refresh')
+        .set('Cookie', loginRes.headers['set-cookie'])
+
+      assert.strictEqual(res.status, 401)
+    })
+  })
+
+  describe('Rate limiting', () => {
+    it('should return 429 after too many login attempts', async () => {
+      for (let i = 0; i < 10; i++) {
+        await request(app)
+          .post('/api/v1/auth/login')
+          .send({ email: 'existing@integration.test', password: 'wrongpassword' })
+      }
+      const res = await request(app)
+        .post('/api/v1/auth/login')
+        .send({ email: 'existing@integration.test', password: 'wrongpassword' })
+      assert.strictEqual(res.status, 429)
+    })
+  })
 })
