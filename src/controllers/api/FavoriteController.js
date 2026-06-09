@@ -57,9 +57,10 @@ export class FavoriteController extends BaseController {
     try {
       const { movies } = req.body
       for (const movie of movies) {
+        await create(movie)
         const success = await createFavorite(req.user.id, movie)
         if (success) {
-          await processMovieSignal(req.user.id, movie.id, { enrich: true })
+          await processMovieSignal(req.user.id, movie.id, { enrich: true, awaitEnrich: true })
         }
       }
       res.status(201).json({ message: 'Favorites saved.' })
