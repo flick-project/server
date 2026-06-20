@@ -5,7 +5,6 @@
  */
 
 import pool from '../config/db.js'
-import { createMovie } from './movieModel.js'
 import { validateTmdbId } from '../utils/validation.js'
 import { createError } from '../utils/errors.js'
 
@@ -17,7 +16,6 @@ import { createError } from '../utils/errors.js'
  * @throws {Error} 403 if the user already has 5 favorites.
  */
 export const createFavorite = async (userId, movie) => {
-  await createMovie(movie)
   const countResult = await pool.query(
     'SELECT COUNT(*) FROM favorites WHERE user_id = $1',
     [userId]

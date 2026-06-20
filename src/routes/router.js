@@ -2,7 +2,6 @@
  * @file Defines the main router.
  * @module routes/router
  * @author Hans Nilsson
- * @version 0.1.0
  */
 
 import express from 'express'

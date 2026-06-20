@@ -1,6 +1,6 @@
 /**
  * @file Defines the authentication router.
- * @module routes/accountRouter
+ * @module routes/authRouter
  * @author Hans Nilsson
  */
 
@@ -9,7 +9,6 @@ import rateLimit from 'express-rate-limit'
 import { AuthController } from '../../../controllers/api/AuthController.js'
 
 export const router = express.Router()
-
 const controller = new AuthController()
 
 const loginLimiter = rateLimit({
@@ -21,7 +20,7 @@ const loginLimiter = rateLimit({
 })
 
 // Map HTTP verbs and route paths to controller actions.
-router.post('/register', (req, res, next) => controller.register(req, res, next))
-router.post('/login', loginLimiter, (req, res, next) => controller.login(req, res, next))
-router.post('/refresh', (req, res, next) => controller.refresh(req, res, next))
-router.post('/logout', (req, res, next) => controller.logout(req, res, next))
+router.post('/register', controller.register.bind(controller))
+router.post('/login', loginLimiter, controller.login.bind(controller))
+router.post('/refresh', controller.refresh.bind(controller))
+router.post('/logout', controller.logout.bind(controller))

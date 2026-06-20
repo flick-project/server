@@ -1,7 +1,7 @@
 import { describe, it, before, after } from 'node:test'
 import assert from 'node:assert'
 import pool from '../../src/config/db.js'
-import { createMovie } from '../../src/models/movieModel.js'
+import { create } from '../../src/models/movieModel.js'
 
 const testMovie = {
   id: -1,
@@ -17,7 +17,7 @@ const testMovie = {
 before(async () => {
   await pool.query('DELETE FROM movies WHERE tmdb_id < 0')
   // Create movie for testing.
-  await createMovie(testMovie)
+  await create(testMovie)
 })
 
 after(async () => {
@@ -25,7 +25,7 @@ after(async () => {
   await pool.end()
 })
 
-describe('createMovie', () => {
+describe('create', () => {
   it('should insert a movie with correct fields', async () => {
     const result = await pool.query('SELECT * FROM movies WHERE tmdb_id = -1')
     const stored = result.rows[0]
@@ -34,12 +34,12 @@ describe('createMovie', () => {
   })
 
   it('should skip insert on duplicate movie', async () => {
-    await createMovie(testMovie)
+    await create(testMovie)
   })
 
   it('should reject null movie', async () => {
     await assert.rejects(
-      () => createMovie(null),
+      () => create(null),
       (err) => {
         assert.strictEqual(err.status, 400)
         return true
@@ -49,7 +49,7 @@ describe('createMovie', () => {
 
   it('should reject missing movie id', async () => {
     await assert.rejects(
-      () => createMovie({ title: 'INVALID_TITLE' }),
+      () => create({ title: 'INVALID_TITLE' }),
       (err) => {
         assert.strictEqual(err.status, 400)
         return true
@@ -59,7 +59,7 @@ describe('createMovie', () => {
 
   it('should reject missing movie title', async () => {
     await assert.rejects(
-      () => createMovie({ id: -2 }),
+      () => create({ id: -2 }),
       (err) => {
         assert.strictEqual(err.status, 400)
         return true

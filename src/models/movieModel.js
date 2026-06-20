@@ -32,7 +32,7 @@ const validate = (movie) => {
  * Creates new movie.
  * @param {object} movie - The movie to create.
  */
-export const createMovie = async (movie) => {
+export const create = async (movie) => {
   validate(movie)
   await pool.query(
     'INSERT INTO movies (tmdb_id, release_date, title, genre_ids, poster_path, vote_average, vote_count, overview) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (tmdb_id) DO NOTHING',
@@ -45,7 +45,7 @@ export const createMovie = async (movie) => {
  * @param {number} movieId - The TMDB movie ID.
  * @param {number[]} keywordIds - The keyword IDs.
  */
-export const updateMovieKeywords = async (movieId, keywordIds) => {
+export const updateKeywords = async (movieId, keywordIds) => {
   await pool.query(
     `UPDATE movies SET keyword_ids = $1
     WHERE tmdb_id = $2 AND keyword_ids = '{}'`,
@@ -59,7 +59,7 @@ export const updateMovieKeywords = async (movieId, keywordIds) => {
  * @param {number} userId - The user's ID.
  * @returns {Promise<Array>} The undiscovered movies.
  */
-export const findUndiscoveredMovies = async (userId) => {
+export const findUndiscovered = async (userId) => {
   const result = await pool.query(
     `SELECT tmdb_id AS id, release_date, title, genre_ids, poster_path, vote_average, vote_count, overview
     FROM movies

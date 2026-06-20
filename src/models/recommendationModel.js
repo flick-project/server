@@ -33,7 +33,7 @@ export const findUserPreferences = async (userId) => {
   return buildScores(result.rows)
 }
 
-const buildScores = (rows) => {
+export const buildScores = (rows) => {
   const scores = { genres: {}, keywords: {} }
   for (const row of rows) {
     const weight = recommendation.weights[row.type]
@@ -44,6 +44,6 @@ const buildScores = (rows) => {
 }
 
 const addScore = (target, key, weight) => {
-  if (!key || Number.isNaN(weight)) return
+  if (!key || weight === undefined || Number.isNaN(weight)) return
   target[key] = (target[key] || 0) + weight
 }
