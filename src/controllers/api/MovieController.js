@@ -26,7 +26,11 @@ export class MovieController extends BaseController {
     try {
       if (!req.user) {
         const { results } = await discoverMovies(1)
-        return res.status(200).json({ movies: results })
+        const validMovies = results.filter(m => m.poster_path)
+        for (const movie of validMovies) {
+          await create(movie)
+        }
+        return res.status(200).json({ movies: validMovies })
       }
 
       let movies = await findUndiscovered(req.user.id)
