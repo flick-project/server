@@ -39,3 +39,12 @@ export const findStats = async (userId) => {
   )
   return result.rows[0]
 }
+
+export const findKeywordNames = async (keywordIds) => {
+  if (keywordIds.length === 0) return {}
+  const result = await pool.query(
+    'SELECT id, name FROM keywords WHERE id = ANY($1)',
+    [keywordIds]
+  )
+  return Object.fromEntries(result.rows.map(r => [r.id, r.name]))
+}

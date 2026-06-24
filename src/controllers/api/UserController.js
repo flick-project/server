@@ -4,9 +4,10 @@
  * @author Hans Nilsson
  */
 import { BaseController } from './BaseController.js'
-import { findProfileInfo, findStats } from '../../models/profileModel.js'
+import { findProfileInfo, findStats, findKeywordNames } from '../../models/profileModel.js'
 import { gravatarUrl } from '../../utils/gravatar.js'
 import { deleteUser } from '../../models/userModel.js'
+import { findUserPreferences } from '../../models/recommendationModel.js'
 
 export class UserController extends BaseController {
   /**
@@ -39,21 +40,41 @@ export class UserController extends BaseController {
    */
   async stats (req, res, next) {
     try {
-      const statsData = await findStats(req.user.id)
+      const [statsData, preferences] = await Promise.all([
+        findStats(req.user.id),
+        findUserPreferences(req.user.id)
+      ])
+      const keywordNames = await findKeywordNames(Object.keys(preferences.keywords).map(Number))
+
+      const keywordScores = {}
+      for (const [id, score] of Object.entries(preferences.keywords)) {
+        const name = keywordNames[id] || id
+        keywordScores[name] = score
+      }
 
       const stats = {
         totalInteractions: statsData.total_interactions,
         totalSaves: statsData.total_saves,
         totalSkips: statsData.total_skips,
-        totalWatched: statsData.total_watched
+        totalWatched: statsData.total_watched,
+        preferences: {
+          genres: preferences.genres,
+          keywords: keywordScores
+        }
       }
-
       res.status(200).json(stats)
     } catch (error) {
       this.handleControllerError(error, 'Failed to fetch stats.', next)
     }
   }
 
+  /**
+   * Deletes a user's account.
+   * @param {object} req - Express's request object.
+   * @param {object} res - Express's response object.
+   * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
+   * @returns {void}
+   */
   async remove (req, res, next) {
     try {
       const deleted = await deleteUser(req.user.id)
