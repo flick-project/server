@@ -12,7 +12,7 @@ import pool from '../config/db.js'
  * @throws {Error} If validation fails.
  */
 const validate = (interaction) => {
-  const validTypes = ['saved', 'skipped', 'removed']
+  const validTypes = ['saved', 'skipped', 'dismissed', 'removed']
 
   if (!validTypes.includes(interaction.interaction)) {
     const error = new Error('Invalid interaction type')

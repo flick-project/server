@@ -10,7 +10,7 @@ export const recommendation = {
     saved: 1,
     removed: 0,
     skipped: 0,
-    uninterested: -1,
+    dismissed: -1,
     dislike: -2,
     hate: -4
   },
