@@ -8,6 +8,7 @@ import { recommendation } from '../config/recommendation.js'
 
 /**
  * Builds a weighted preference profile from a user's interactions, ratings, and favorites.
+ * Limit preferences to their last x amount of interactions and ratings to prevent clustering.
  * @param {number} userId - The user's ID.
  * @returns {Promise<object>} Weighted scores per genre and keyword.
  */
@@ -15,20 +16,28 @@ export const findUserPreferences = async (userId) => {
   const result = await pool.query(
     `SELECT u.type, m.genre_ids, m.keyword_ids
     FROM (
-      SELECT mi.movie_id, mi.interaction AS type
-      FROM movie_interactions mi
-      WHERE mi.user_id = $1
+      SELECT movie_id, interaction AS type FROM (
+        SELECT movie_id, interaction, created_at
+        FROM movie_interactions
+        WHERE user_id = $1
+        ORDER BY created_at DESC
+        LIMIT $2
+      ) mi
       UNION ALL
-      SELECT r.movie_id, r.rating AS type
-      FROM ratings r
-      WHERE r.user_id = $1
+      SELECT movie_id, rating AS type FROM (
+        SELECT movie_id, rating, updated_at
+        FROM ratings
+        WHERE user_id = $1
+        ORDER BY updated_at DESC
+        LIMIT $3
+      ) r
       UNION ALL
-      SELECT f.movie_id, 'favorite' AS type
-      FROM favorites f
-      WHERE f.user_id = $1
+      SELECT movie_id, 'favorite' AS type
+      FROM favorites
+      WHERE user_id = $1
     ) u
     JOIN movies m ON m.tmdb_id = u.movie_id`,
-    [userId]
+    [userId, recommendation.interactionWindow, recommendation.ratingWindow]
   )
   return buildScores(result.rows)
 }

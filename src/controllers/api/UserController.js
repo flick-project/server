@@ -9,6 +9,15 @@ import { gravatarUrl } from '../../utils/gravatar.js'
 import { deleteUser } from '../../models/userModel.js'
 import { findUserPreferences } from '../../models/recommendationModel.js'
 
+const titleCase = (str) => str.split(' ').map(w => w ? w[0].toUpperCase() + w.slice(1) : '').join(' ')
+
+const topScores = (scores, limit, positive = true) =>
+  Object.entries(scores)
+    .filter(([, score]) => positive ? score > 0 : score < 0)
+    .sort(([, a], [, b]) => positive ? b - a : a - b)
+    .slice(0, limit)
+    .map(([key, score]) => ({ key, score }))
+
 export class UserController extends BaseController {
   /**
    * Gets a user's basic profile info.
@@ -46,10 +55,9 @@ export class UserController extends BaseController {
       ])
       const keywordNames = await findKeywordNames(Object.keys(preferences.keywords).map(Number))
 
-      const keywordScores = {}
+      const resolvedKeywords = {}
       for (const [id, score] of Object.entries(preferences.keywords)) {
-        const name = keywordNames[id] || id
-        keywordScores[name] = score
+        resolvedKeywords[titleCase(keywordNames[id] || String(id))] = score
       }
 
       const stats = {
@@ -58,8 +66,9 @@ export class UserController extends BaseController {
         totalSkips: statsData.total_skips,
         totalWatched: statsData.total_watched,
         preferences: {
-          genres: preferences.genres,
-          keywords: keywordScores
+          topGenres: topScores(preferences.genres, 3),
+          topKeywords: topScores(resolvedKeywords, 7),
+          worstKeywords: topScores(resolvedKeywords, 10, false)
         }
       }
       res.status(200).json(stats)

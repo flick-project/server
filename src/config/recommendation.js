@@ -16,5 +16,7 @@ export const recommendation = {
   },
   genreLimit: 5,
   excludedGenres: ['18'],
-  negativeKeywordLimit: 20
+  negativeKeywordLimit: 20,
+  interactionWindow: 100,
+  ratingWindow: 50
 }
