@@ -41,15 +41,27 @@ export const create = async (movie) => {
 }
 
 /**
- * Stores keyword IDs for a movie if not already set.
+ * Stores keyword IDs for a movie and caches keyword names.
  * @param {number} movieId - The TMDB movie ID.
- * @param {number[]} keywordIds - The keyword IDs.
+ * @param {Array<{id: number, name: string}>} keywords - The keywords from TMDB.
  */
-export const updateKeywords = async (movieId, keywordIds) => {
+export const storeKeywords = async (movieId, keywords) => {
+  const keywordIds = keywords.map(k => k.id)
+
   await pool.query(
     `UPDATE movies SET keyword_ids = $1
     WHERE tmdb_id = $2 AND keyword_ids = '{}'`,
     [keywordIds, movieId]
+  )
+
+  if (keywords.length === 0) return
+
+  const values = keywords.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2})`).join(', ')
+  const params = keywords.flatMap(k => [k.id, k.name])
+
+  await pool.query(
+    `INSERT INTO keywords (id, name) VALUES ${values} ON CONFLICT (id) DO NOTHING`,
+    params
   )
 }
 

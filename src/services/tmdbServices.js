@@ -56,7 +56,7 @@ export const fetchRecommendations = async (movieId) => {
  */
 export const fetchMovieKeywords = async (movieId) => {
   const data = await tmdbFetch(`/movie/${movieId}/keywords`)
-  return data.keywords.map(keyword => keyword.id)
+  return data.keywords.map(({ id, name }) => ({ id, name }))
 }
 
 /**

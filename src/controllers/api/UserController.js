@@ -4,9 +4,19 @@
  * @author Hans Nilsson
  */
 import { BaseController } from './BaseController.js'
-import { findProfileInfo, findStats } from '../../models/profileModel.js'
+import { findProfileInfo, findStats, findKeywordNames } from '../../models/profileModel.js'
 import { gravatarUrl } from '../../utils/gravatar.js'
 import { deleteUser } from '../../models/userModel.js'
+import { findUserPreferences } from '../../models/recommendationModel.js'
+
+const titleCase = (str) => str.split(' ').map(w => w ? w[0].toUpperCase() + w.slice(1) : '').join(' ')
+
+const topScores = (scores, limit, positive = true) =>
+  Object.entries(scores)
+    .filter(([, score]) => positive ? score > 0 : score < 0)
+    .sort(([, a], [, b]) => positive ? b - a : a - b)
+    .slice(0, limit)
+    .map(([key, score]) => ({ key, score }))
 
 export class UserController extends BaseController {
   /**
@@ -39,21 +49,41 @@ export class UserController extends BaseController {
    */
   async stats (req, res, next) {
     try {
-      const statsData = await findStats(req.user.id)
+      const [statsData, preferences] = await Promise.all([
+        findStats(req.user.id),
+        findUserPreferences(req.user.id)
+      ])
+      const keywordNames = await findKeywordNames(Object.keys(preferences.keywords).map(Number))
+
+      const resolvedKeywords = {}
+      for (const [id, score] of Object.entries(preferences.keywords)) {
+        resolvedKeywords[titleCase(keywordNames[id] || String(id))] = score
+      }
 
       const stats = {
         totalInteractions: statsData.total_interactions,
         totalSaves: statsData.total_saves,
         totalSkips: statsData.total_skips,
-        totalWatched: statsData.total_watched
+        totalWatched: statsData.total_watched,
+        preferences: {
+          topGenres: topScores(preferences.genres, 3),
+          topKeywords: topScores(resolvedKeywords, 7),
+          worstKeywords: topScores(resolvedKeywords, 10, false)
+        }
       }
-
       res.status(200).json(stats)
     } catch (error) {
       this.handleControllerError(error, 'Failed to fetch stats.', next)
     }
   }
 
+  /**
+   * Deletes a user's account.
+   * @param {object} req - Express's request object.
+   * @param {object} res - Express's response object.
+   * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
+   * @returns {void}
+   */
   async remove (req, res, next) {
     try {
       const deleted = await deleteUser(req.user.id)

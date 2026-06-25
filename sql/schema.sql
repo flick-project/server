@@ -20,11 +20,16 @@ CREATE TABLE movies (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE keywords (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL
+);
+
 CREATE TABLE movie_interactions (
   id SERIAL PRIMARY KEY,
   movie_id INTEGER NOT NULL REFERENCES movies(tmdb_id) ON DELETE CASCADE,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  interaction VARCHAR(20) NOT NULL CHECK (interaction IN ('saved', 'skipped', 'removed')),
+  interaction VARCHAR(20) NOT NULL CHECK (interaction IN ('saved', 'skipped', 'dismissed', 'removed')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (user_id, movie_id)
 );

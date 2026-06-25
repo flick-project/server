@@ -5,7 +5,7 @@
  */
 
 import { fetchMovieKeywords, fetchRecommendations } from './tmdbServices.js'
-import { create, updateKeywords } from '../models/movieModel.js'
+import { create, storeKeywords } from '../models/movieModel.js'
 import { findUserPreferences } from '../models/recommendationModel.js'
 import { recommendation } from '../config/recommendation.js'
 
@@ -44,7 +44,7 @@ export const enrichPool = async (userId, movieId) => {
   await Promise.all(
     filteredMovies.map(async (movie) => {
       await create(movie)
-      await updateKeywords(movie.id, keywordsByMovieId[movie.id])
+      await storeKeywords(movie.id, keywordsByMovieId[movie.id])
     })
   )
 }
@@ -74,7 +74,7 @@ export const filterCandidates = (candidates, keywordsByMovieId, negativeKeywords
  */
 export const processMovieSignal = async (userId, movieId, { enrich = false, awaitEnrich = false } = {}) => {
   const keywordIds = await fetchMovieKeywords(movieId)
-  await updateKeywords(movieId, keywordIds)
+  await storeKeywords(movieId, keywordIds)
   if (enrich) {
     const job = enrichPool(userId, movieId).catch(console.error)
     if (awaitEnrich) await job
