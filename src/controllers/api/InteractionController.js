@@ -5,7 +5,7 @@
  */
 import { BaseController } from './BaseController.js'
 import { createInteraction } from '../../models/interactionModel.js'
-import { storeKeywords } from '../../models/movieModel.js'
+import { ensureExists, storeKeywords } from '../../models/movieModel.js'
 import { fetchMovieKeywords } from '../../services/tmdbServices.js'
 
 export class InteractionController extends BaseController {
@@ -18,6 +18,7 @@ export class InteractionController extends BaseController {
   async create (req, res, next) {
     try {
       const { movieId, interaction } = req.body
+      await ensureExists(movieId)
       await createInteraction({ movieId, userId: req.user.id, interaction })
       // Fetch and store keywords for the recommendation profile.
       if (interaction === 'saved' || interaction === 'dismissed') {
