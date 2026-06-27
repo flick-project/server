@@ -50,9 +50,9 @@ export const fetchRecommendations = async (movieId) => {
 }
 
 /**
- * Fetch keyword IDs for a movie.
+ * Fetch keywords for a movie.
  * @param {number} movieId - The TMDB movie ID.
- * @returns {Promise<number[]>} The keyword IDs.
+ * @returns {Promise<Array<{id: number, name: string}>>} The keywords.
  */
 export const fetchMovieKeywords = async (movieId) => {
   const data = await tmdbFetch(`/movie/${movieId}/keywords`)
@@ -67,4 +67,13 @@ export const fetchMovieKeywords = async (movieId) => {
 export const searchMovies = async (query) => {
   if (!query?.trim()) return { results: [] }
   return tmdbFetch('/search/movie', { query })
+}
+
+/**
+ * Fetch a single movie by TMDB ID.
+ * @param {number} movieId - The TMDB movie ID.
+ * @returns {Promise<object>} The movie data.
+ */
+export const findMovie = async (movieId) => {
+  return tmdbFetch(`/movie/${movieId}`)
 }
