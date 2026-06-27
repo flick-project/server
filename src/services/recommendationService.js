@@ -59,7 +59,7 @@ export const enrichPool = async (userId, movieId) => {
 export const filterCandidates = (candidates, keywordsByMovieId, negativeKeywords) => {
   return candidates.filter(movie => {
     const keywords = keywordsByMovieId[movie.id] ?? []
-    return !keywords.some(id => negativeKeywords.has(id))
+    return !keywords.some(k => negativeKeywords.has(k.id))
   })
 }
 
