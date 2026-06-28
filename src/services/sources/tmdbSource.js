@@ -1,17 +1,6 @@
 import { discoverMovies } from '../tmdbServices.js'
 import { findDiscoverProgress, setDiscoverProgress } from '../../models/userModel.js'
-
-const toPoolItem = (movie) => ({
-  id: movie.id,
-  title: movie.title,
-  image: movie.poster_path,
-  year: movie.release_date,
-  score: movie.vote_average,
-  votes: movie.vote_count,
-  overview: movie.overview,
-  genres: movie.genre_ids ?? [],
-  tags: []
-})
+import { toPoolItem } from '../sources/tmdbMapper.js'
 
 export const tmdbSource = {
   async discover (userId, filters) {

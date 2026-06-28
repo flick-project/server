@@ -4,25 +4,9 @@
  * @author Hans Nilsson
  */
 import { fetchRecommendations, fetchMovieKeywords } from '../tmdbServices.js'
+import { toPoolItem } from '../sources/tmdbMapper.js'
 
 const ENRICH_LIMIT = 5
-
-/**
- * Maps a TMDB movie object to the generic PoolItem format.
- * @param {object} movie - The TMDB movie.
- * @returns {object} The mapped PoolItem.
- */
-const toPoolItem = (movie) => ({
-  id: movie.id,
-  title: movie.title,
-  image: movie.poster_path,
-  year: movie.release_date,
-  score: movie.vote_average,
-  votes: movie.vote_count,
-  overview: movie.overview,
-  genres: movie.genre_ids ?? [],
-  tags: movie.tags ?? []
-})
 
 export const recommendationEnricher = {
   /**

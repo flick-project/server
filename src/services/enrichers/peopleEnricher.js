@@ -5,26 +5,10 @@
  */
 import { discoverMovies, fetchMovieKeywords } from '../tmdbServices.js'
 import { findUserPreferences } from '../../models/recommendationModel.js'
+import { toPoolItem } from '../sources/tmdbMapper.js'
 
 const ENRICH_LIMIT = 5
 const TOP_PEOPLE_COUNT = 3
-
-/**
- * Maps a TMDB movie object to the generic PoolItem format.
- * @param {object} movie - The TMDB movie.
- * @returns {object} The mapped PoolItem.
- */
-const toPoolItem = (movie) => ({
-  id: movie.id,
-  title: movie.title,
-  image: movie.poster_path,
-  year: movie.release_date,
-  score: movie.vote_average,
-  votes: movie.vote_count,
-  overview: movie.overview,
-  genres: movie.genre_ids ?? [],
-  tags: movie.tags ?? []
-})
 
 export const peopleEnricher = {
   /**
