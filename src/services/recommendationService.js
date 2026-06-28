@@ -7,6 +7,7 @@ import { storeKeywords, storeCredits } from '../models/movieModel.js'
 import { fetchMovieKeywords, fetchMovieCredits } from './tmdbServices.js'
 import { addToPool } from './pool/pool.js'
 import { recommendationEnricher } from './enrichers/recommendationEnricher.js'
+import { peopleEnricher } from './enrichers/peopleEnricher.js'
 
 /**
  * Processes a movie signal by storing keywords and credits, and optionally
@@ -28,8 +29,11 @@ export const processMovieSignal = async (userId, movieId, { enrich = false, awai
 
   if (enrich) {
     const job = (async () => {
-      const items = await recommendationEnricher.enrich(userId, movieId)
-      await addToPool(userId, items)
+      const [recItems, peopleItems] = await Promise.all([
+        recommendationEnricher.enrich(userId, movieId),
+        peopleEnricher.enrich(userId)
+      ])
+      await addToPool(userId, [...recItems, ...peopleItems])
     })().catch(console.error)
     if (awaitEnrich) await job
   }
