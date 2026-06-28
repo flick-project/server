@@ -18,5 +18,7 @@ export const recommendation = {
   excludedGenres: ['18'],
   negativeKeywordLimit: 20,
   interactionWindow: 100,
-  ratingWindow: 50
+  ratingWindow: 50,
+  keywordDistinctThreshold: 2,
+  thresholdKicksInAt: 100
 }
