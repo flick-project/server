@@ -127,3 +127,14 @@ export const findUndiscovered = async (userId, count = 20) => {
 export const findRandomUndiscovered = async (userId, count) => {
   return findUndiscovered(userId, count)
 }
+
+export const countUndiscovered = async (userId) => {
+  const result = await pool.query(
+    `SELECT COUNT(*) FROM movies
+    WHERE tmdb_id NOT IN (SELECT movie_id FROM movie_interactions WHERE user_id = $1 AND interaction != 'removed')
+    AND tmdb_id NOT IN (SELECT movie_id FROM ratings WHERE user_id = $1)
+    AND tmdb_id NOT IN (SELECT movie_id FROM favorites WHERE user_id = $1)`,
+    [userId]
+  )
+  return parseInt(result.rows[0].count, 10)
+}
