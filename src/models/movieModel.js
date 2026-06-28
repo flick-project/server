@@ -80,12 +80,28 @@ export const storeKeywords = async (movieId, keywords) => {
 }
 
 /**
+ * Stores credits (director + top cast) for a movie.
+ * @param {number} movieId - The TMDB movie ID.
+ * @param {Array<{id: number, name: string, role: string}>} credits - The credits.
+ */
+export const storeCredits = async (movieId, credits) => {
+  if (credits.length === 0) return
+  const values = credits.map((_, i) => `($${i * 4 + 1}, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4})`).join(', ')
+  const params = credits.flatMap(c => [movieId, c.id, c.name, c.role])
+  await pool.query(
+    `INSERT INTO movie_credits (movie_id, person_id, name, role) VALUES ${values} ON CONFLICT (movie_id, person_id) DO NOTHING`,
+    params
+  )
+}
+
+/**
  * Gets 20 undiscovered movies for a user.
  * Filters interacted and rated movies.
  * @param {number} userId - The user's ID.
+ * @param {number} [count] - Number of movies to return.
  * @returns {Promise<Array>} The undiscovered movies.
  */
-export const findUndiscovered = async (userId) => {
+export const findUndiscovered = async (userId, count = 20) => {
   const result = await pool.query(
     `SELECT tmdb_id AS id, release_date, title, genre_ids, poster_path, vote_average, vote_count, overview
     FROM movies
@@ -102,8 +118,12 @@ export const findUndiscovered = async (userId) => {
       WHERE user_id = $1
     )
     ORDER BY RANDOM()
-    LIMIT 20`,
-    [userId]
+    LIMIT $2`,
+    [userId, count]
   )
   return result.rows
+}
+
+export const findRandomUndiscovered = async (userId, count) => {
+  return findUndiscovered(userId, count)
 }
