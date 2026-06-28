@@ -25,6 +25,14 @@ CREATE TABLE keywords (
   name TEXT NOT NULL
 );
 
+CREATE TABLE movie_credits (
+  movie_id INTEGER REFERENCES movies(tmdb_id),
+  person_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  PRIMARY KEY (movie_id, person_id)
+);
+
 CREATE TABLE movie_interactions (
   id SERIAL PRIMARY KEY,
   movie_id INTEGER NOT NULL REFERENCES movies(tmdb_id) ON DELETE CASCADE,
@@ -63,3 +71,4 @@ CREATE TABLE refresh_tokens (
 CREATE INDEX idx_refresh_tokens_token ON refresh_tokens(token);
 CREATE INDEX idx_interactions_user ON movie_interactions(user_id);
 CREATE INDEX idx_ratings_user ON ratings(user_id);
+CREATE INDEX IF NOT EXISTS idx_movie_credits_movie_id ON movie_credits(movie_id);

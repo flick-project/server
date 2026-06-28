@@ -35,6 +35,7 @@ const tmdbFetch = async (path, params = {}) => {
 export const discoverMovies = async (page, filters = {}) => {
   const params = { sort_by: 'popularity.desc', page, 'vote_count.gte': 50 }
   if (filters.genres?.length) params.with_genres = filters.genres.join('|')
+  if (filters.with_people) params.with_people = filters.with_people
   if (filters.without_keywords) params.without_keywords = filters.without_keywords
   return tmdbFetch('/discover/movie', params)
 }
@@ -76,4 +77,14 @@ export const searchMovies = async (query) => {
  */
 export const findMovie = async (movieId) => {
   return tmdbFetch(`/movie/${movieId}`)
+}
+
+export const fetchMovieCredits = async (movieId) => {
+  const data = await tmdbFetch(`/movie/${movieId}/credits`)
+  const director = data.crew.find(c => c.job === 'Director')
+  const cast = data.cast.slice(0, 3)
+  return [
+    ...(director ? [{ id: director.id, name: director.name, role: 'director' }] : []),
+    ...cast.map(({ id, name }) => ({ id, name, role: 'cast' }))
+  ]
 }

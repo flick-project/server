@@ -24,7 +24,14 @@ export const servePool = async (userId, count = 20) => {
     findRandomUndiscovered(userId, randomCount)
   ])
 
-  return shuffle([...base, ...random])
+  const seen = new Set()
+  const combined = [...base, ...random].filter(m => {
+    if (seen.has(m.id)) return false
+    seen.add(m.id)
+    return true
+  })
+
+  return shuffle(combined)
 }
 
 const shuffle = (arr) => arr.sort(() => Math.random() - 0.5)

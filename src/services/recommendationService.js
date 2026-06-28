@@ -1,82 +1,36 @@
 /**
- * @file Recommendation service for enriching the discovery pool.
+ * @file Recommendation service for processing user signals and triggering enrichment.
  * @module services/recommendationService
  * @author Hans Nilsson
  */
-
-import { fetchMovieKeywords, fetchRecommendations } from './tmdbServices.js'
-import { create, storeKeywords } from '../models/movieModel.js'
-import { findUserPreferences } from '../models/recommendationModel.js'
-import { recommendation } from '../config/recommendation.js'
-
-/**
- * Fetches keywords and filtered recommendations for a movie,
- * storing them in the database to enrich the discovery pool.
- * @param {number} userId - The user's ID.
- * @param {number} movieId - The TMDB movie ID.
- */
-export const enrichPool = async (userId, movieId) => {
-  const scores = await findUserPreferences(userId)
-  const negativeKeywords = new Set(
-    Object.entries(scores.keywords)
-      .filter(([, score]) => score < 0)
-      .sort((a, b) => a[1] - b[1])
-      .slice(0, recommendation.negativeKeywordLimit)
-      .map(([id]) => Number(id))
-  )
-  // Fetch recommendations and take the first 5.
-  const recommendations = await fetchRecommendations(movieId)
-  const candidates = recommendations.filter(m => m.poster_path).slice(0, 5)
-
-  // Fetch keywords for all candidates in parallel.
-  const keywordResults = await Promise.all(
-    candidates.map(async (movie) => {
-      const keywordIds = await fetchMovieKeywords(movie.id)
-      return { id: movie.id, keywordIds }
-    })
-  )
-  const keywordsByMovieId = Object.fromEntries(
-    keywordResults.map(({ id, keywordIds }) => [id, keywordIds])
-  )
-  const filteredMovies = filterCandidates(candidates, keywordsByMovieId, negativeKeywords)
-
-  // Save filtered movies and their keywords to the pool.
-  await Promise.all(
-    filteredMovies.map(async (movie) => {
-      await create(movie)
-      await storeKeywords(movie.id, keywordsByMovieId[movie.id])
-    })
-  )
-}
+import { storeKeywords, storeCredits } from '../models/movieModel.js'
+import { fetchMovieKeywords, fetchMovieCredits } from './tmdbServices.js'
+import { addToPool } from './pool/pool.js'
+import { recommendationEnricher } from './enrichers/recommendationEnricher.js'
 
 /**
- * Filters recommendation candidates by removing movies with negative keywords.
- * @param {object[]} candidates - TMDB movie objects to filter.
- * @param {Map<number, number[]>} keywordsByMovieId - Map of movie ID to keyword IDs.
- * @param {Set<number>} negativeKeywords - Set of keyword IDs to exclude.
- * @returns {object[]} Candidates with no negative keyword matches.
- */
-export const filterCandidates = (candidates, keywordsByMovieId, negativeKeywords) => {
-  return candidates.filter(movie => {
-    const keywords = keywordsByMovieId[movie.id] ?? []
-    return !keywords.some(k => negativeKeywords.has(k.id))
-  })
-}
-
-/**
- * Processes a movie signal by storing keywords and optionally enriching the discovery pool.
+ * Processes a movie signal by storing keywords and credits, and optionally
+ * triggering pool enrichment in the background.
  * Should be called after any meaningful user-movie interaction (save, rate, favorite).
  * @param {number} userId - The user's ID.
  * @param {number} movieId - The TMDB movie ID.
  * @param {object} [options] - Optional behaviour flags.
- * @param {boolean} [options.enrich] - Whether to enrich the discovery pool with recommendations.
+ * @param {boolean} [options.enrich] - Whether to enrich the pool with recommendations.
  * @param {boolean} [options.awaitEnrich] - Whether to await enrichment (e.g. during onboarding).
  */
 export const processMovieSignal = async (userId, movieId, { enrich = false, awaitEnrich = false } = {}) => {
-  const keywordIds = await fetchMovieKeywords(movieId)
-  await storeKeywords(movieId, keywordIds)
+  const [keywords, credits] = await Promise.all([
+    fetchMovieKeywords(movieId),
+    fetchMovieCredits(movieId)
+  ])
+  await storeKeywords(movieId, keywords)
+  await storeCredits(movieId, credits)
+
   if (enrich) {
-    const job = enrichPool(userId, movieId).catch(console.error)
+    const job = (async () => {
+      const items = await recommendationEnricher.enrich(userId, movieId)
+      await addToPool(userId, items)
+    })().catch(console.error)
     if (awaitEnrich) await job
   }
 }
