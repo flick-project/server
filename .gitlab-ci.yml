@@ -1,21 +1,16 @@
 .before_script_ssh_setup: &before_script_ssh_setup
   # Ensure ssh-agent is installed and started.
   - command -v ssh-agent >/dev/null || ( apk add --no-cache openssh-client )
-
   # Start the ssh-agent in the background.
   - eval $(ssh-agent -s)
-
   # Decode the base64-encoded SSH key and write to a temporary file.
   # Using 'tr' to remove carriage return characters for ed25519 compatibility.
   - echo "$SSH_PRIVATE_KEY" | base64 -d | tr -d '\r' > ~/.ssh_key
-
   # Set strict permissions (required by OpenSSH) and add key to agent.
   - chmod 600 ~/.ssh_key
   - ssh-add ~/.ssh_key
-
   # Remove the temporary key file immediately for security.
   - rm ~/.ssh_key
-
   # Add the remote server to known_hosts to prevent MITM attacks.
   - mkdir -p ~/.ssh && chmod 700 ~/.ssh
   - ssh-keyscan -H $PRODUCTION_HOST >> ~/.ssh/known_hosts
@@ -32,7 +27,6 @@ default:
   artifacts:
     expire_in: 1 day
 
-# Define the stages of the pipeline and their order of execution.
 stages:
   - test
   - deploy
@@ -53,12 +47,10 @@ test:
     TMDB_API_KEY: fake-key
   script:
     - echo "Running tests and linting..."
-    - apk add --no-cache postgresql-client
     - npm ci
-    - PGPASSWORD=test psql -h postgres -U flick -d flick_test -f sql/schema.sql
+    - npm run migrate:up
     - node --experimental-test-module-mocks --test --test-concurrency=1 tests/**/*.test.js
     - npm run lint
-  # Cache node modules and update if package-lock hash changes.
   cache:
     key:
       files:

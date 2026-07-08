@@ -1,7 +1,7 @@
 {
   "name": "flick-server",
   "private": true,
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Backend API for Flick, built with Express and PostgreSQL.",
   "author": "Hans Nilsson",
   "license": "MIT",
@@ -17,7 +17,11 @@
     "test:unit": "node --env-file=.env.test --test tests/unit/**/*.test.js",
     "test:integration": "node --env-file=.env.test --experimental-test-module-mocks --test tests/integration/**/*.test.js",
     "lint": "npx eslint ./src || exit 0",
-    "lint:fix": "npx eslint ./src --fix || exit 0"
+    "lint:fix": "npx eslint ./src --fix || exit 0",
+    "migrate": "node-pg-migrate",
+    "migrate:up": "node-pg-migrate up",
+    "migrate:down": "node-pg-migrate down",
+    "migrate:create": "node-pg-migrate create --migration-file-language js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -34,6 +38,7 @@
     "eslint": "^9.39.4",
     "eslint-plugin-jsdoc": "^62.9.0",
     "neostandard": "^0.13.0",
+    "node-pg-migrate": "^8.0.4",
     "supertest": "^7.2.2"
   }
 }

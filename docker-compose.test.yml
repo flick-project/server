@@ -5,7 +5,5 @@ services:
       POSTGRES_USER: flick
       POSTGRES_PASSWORD: test
       POSTGRES_DB: flick_test
-    volumes:
-      - ./sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql
     ports:
       - "5433:5432"
