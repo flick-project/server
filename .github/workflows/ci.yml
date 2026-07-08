@@ -35,7 +35,7 @@ jobs:
           node-version: '24'
           cache: 'npm'
       - run: npm ci
-      - run: PGPASSWORD=test psql -h localhost -U flick -d flick_test -f sql/schema.sql
+      - run: npm run migrate:up
       - run: node --experimental-test-module-mocks --test --test-concurrency=1 tests/**/*.test.js
       - run: npm run lint
 
