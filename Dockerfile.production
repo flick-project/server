@@ -7,7 +7,4 @@ ENV NODE_ENV=production
 RUN npm ci --omit=dev --ignore-scripts
 COPY --chown=node:node . .
 
-# Make entrypoint executable
-RUN chmod +x ./entrypoint.sh
-
-ENTRYPOINT ["./entrypoint.sh"]
+CMD ["sh", "-c", "npm run migrate:up && exec node src/server.js"]
