@@ -10,6 +10,7 @@ import { findMovie, searchMovies } from '../../services/tmdbServices.js'
 import { recommendation } from '../../config/recommendation.js'
 import { tmdbSource } from '../../services/sources/tmdbSource.js'
 import { servePool, addToPool } from '../../services/pool/pool.js'
+import { fromPoolItem } from '../../services/sources/tmdbMapper.js'
 
 const DISCOVER_POOL = 20
 
@@ -27,7 +28,7 @@ export class MovieController extends BaseController {
     try {
       if (!req.user) {
         const items = await tmdbSource.discover(null, {})
-        return res.status(200).json({ movies: items.slice(0, 1) })
+        return res.status(200).json({ movies: items.slice(0, 1).map(fromPoolItem) })
       }
 
       const undiscoveredCount = await countUndiscovered(req.user.id)

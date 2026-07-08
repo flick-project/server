@@ -85,6 +85,7 @@ export const buildScores = (rows) => {
 
     // Keywords accumulate both positive and negative signals (they're specific enough to matter).
     row.keyword_ids.forEach(id => {
+      if (recommendation.keywordBlocklist.includes(id)) return
       addScore(scores.keywords, id, weight)
       if (!keywordMovies[id]) keywordMovies[id] = new Set()
       keywordMovies[id].add(row.movie_id)
