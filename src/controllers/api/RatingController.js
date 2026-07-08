@@ -6,6 +6,7 @@
 import { BaseController } from './BaseController.js'
 import { createRating, removeRating } from '../../models/ratingModel.js'
 import { processMovieSignal } from '../../services/recommendationService.js'
+import { ensureExists } from '../../models/movieModel.js'
 
 export class RatingController extends BaseController {
 /**
@@ -17,6 +18,7 @@ export class RatingController extends BaseController {
   async rate (req, res, next) {
     try {
       const { movieId, rating } = req.body
+      await ensureExists(movieId)
       const result = await createRating(req.user.id, movieId, rating)
       processMovieSignal(req.user.id, movieId, { enrich: rating === 'love' })
       res.status(200).json(result)

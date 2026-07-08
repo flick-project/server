@@ -4,6 +4,7 @@
  * @author Hans Nilsson
  */
 import pool from '../config/db.js'
+import { findMovie } from '../services/tmdbServices.js'
 
 /**
  * Validate movie data before storing.
@@ -26,6 +27,19 @@ const validate = (movie) => {
     error.status = 400
     throw error
   }
+}
+
+/**
+ * Ensures a movie exists in the database, fetching from TMDB if missing.
+ * @param {number} movieId - The TMDB movie ID.
+ */
+export const ensureExists = async (movieId) => {
+  const result = await pool.query('SELECT 1 FROM movies WHERE tmdb_id = $1', [movieId])
+  if (result.rows.length > 0) return
+
+  const movie = await findMovie(movieId)
+  movie.genre_ids = movie.genres.map(g => g.id)
+  await create(movie)
 }
 
 /**

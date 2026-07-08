@@ -7,7 +7,7 @@ import { BaseController } from './BaseController.js'
 import { create, findUndiscovered } from '../../models/movieModel.js'
 import { findDiscoverProgress, setDiscoverProgress } from '../../models/userModel.js'
 import { findUserPreferences } from '../../models/recommendationModel.js'
-import { discoverMovies, searchMovies } from '../../services/tmdbServices.js'
+import { discoverMovies, findMovie, searchMovies } from '../../services/tmdbServices.js'
 import { recommendation } from '../../config/recommendation.js'
 
 const DISCOVER_POOL = 20
@@ -63,6 +63,22 @@ export class MovieController extends BaseController {
       }
     } catch (error) {
       this.handleControllerError(error, 'Movie search failed.', next)
+    }
+  }
+
+  /**
+   * Fetches a single movie by TMDB ID.
+   * @param {object} req - Express's request object.
+   * @param {object} res - Express's response object.
+   * @param {(error: Error) => void} next - Express's next function.
+   */
+  async find (req, res, next) {
+    try {
+      const { tmdbId } = req.params
+      const movie = await findMovie(tmdbId)
+      res.status(200).json(movie)
+    } catch (error) {
+      this.handleControllerError(error, 'Failed to fetch movie.', next)
     }
   }
 
