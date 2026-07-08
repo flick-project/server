@@ -7,8 +7,7 @@ ENV NODE_ENV=production
 RUN npm ci --omit=dev --ignore-scripts
 COPY --chown=node:node . .
 
-# Copy and setup entrypoint
-COPY --chown=node:node entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Make entrypoint executable
+RUN chmod +x ./entrypoint.sh
 
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
