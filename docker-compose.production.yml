@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile.production
     container_name: flick-server
     restart: unless-stopped
+    command: sh -c "until npm run migrate:up; do sleep 2; done && node src/server.js"
     env_file: .env
     environment:
       - PORT=3000
