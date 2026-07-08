@@ -4,19 +4,21 @@
  * @author Hans Nilsson
  */
 import { BaseController } from './BaseController.js'
-import { create, findUndiscovered } from '../../models/movieModel.js'
-import { findDiscoverProgress, setDiscoverProgress } from '../../models/userModel.js'
+import { countUndiscovered } from '../../models/movieModel.js'
 import { findUserPreferences } from '../../models/recommendationModel.js'
-import { discoverMovies, findMovie, searchMovies } from '../../services/tmdbServices.js'
+import { findMovie, searchMovies } from '../../services/tmdbServices.js'
 import { recommendation } from '../../config/recommendation.js'
+import { tmdbSource } from '../../services/sources/tmdbSource.js'
+import { servePool, addToPool } from '../../services/pool/pool.js'
+import { fromPoolItem } from '../../services/sources/tmdbMapper.js'
 
 const DISCOVER_POOL = 20
 
 export class MovieController extends BaseController {
   /**
    * Fetches a list of movies for discovery.
-   * If the user is authenticated, fetches movies they haven't interacted with yet.
-   * If the pool of undiscovered movies is low, fetches more from TMDB and stores them in the database.
+   * Guests get a single movie from TMDB. Logged-in users get a personalized
+   * pool, restocked from their preferred genres when low.
    * @param {object} req - Express's request object.
    * @param {object} res - Express's response object.
    * @param {(error: Error) => void} next - Express's next function.
@@ -25,19 +27,19 @@ export class MovieController extends BaseController {
   async discover (req, res, next) {
     try {
       if (!req.user) {
-        const { results } = await discoverMovies(1)
-        const validMovies = results.filter(m => m.poster_path)
-        for (const movie of validMovies) {
-          await create(movie)
-        }
-        return res.status(200).json({ movies: validMovies })
+        const items = await tmdbSource.discover(null, {})
+        return res.status(200).json({ movies: items.slice(0, 1).map(fromPoolItem) })
       }
 
-      let movies = await findUndiscovered(req.user.id)
-      if (movies.length < DISCOVER_POOL) {
-        movies = await this.#restockPool(req.user.id, movies)
+      const undiscoveredCount = await countUndiscovered(req.user.id)
+      if (undiscoveredCount < DISCOVER_POOL) {
+        const scores = await findUserPreferences(req.user.id)
+        const filters = this.#buildDiscoverFilters(scores)
+        const items = await tmdbSource.discover(req.user.id, filters)
+        await addToPool(req.user.id, items)
       }
 
+      const movies = await servePool(req.user.id)
       res.status(200).json({ movies })
     } catch (error) {
       this.handleControllerError(error, 'Failed to fetch movies.', next)
@@ -83,56 +85,21 @@ export class MovieController extends BaseController {
   }
 
   /**
-   * Fetches TMDB pages and stores movies until the pool reaches DISCOVER_POOL.
-   * Skips movies without a poster. Resets page progress when TMDB runs out of pages.
-   * @param {number} userId - The user's ID.
-   * @param {object[]} movies - The current undiscovered movie pool.
-   * @returns {Promise<object[]>} The replenished pool.
-   */
-  async #restockPool (userId, movies) {
-    const scores = await findUserPreferences(userId)
-    const filters = this.#buildDiscoverFilters(scores)
-    let page = await findDiscoverProgress(userId)
-
-    while (movies.length < DISCOVER_POOL - 1) {
-      const { results } = await discoverMovies(page, filters ?? {})
-
-      if (!results.length) {
-        page = 1
-        break
-      }
-
-      const validMovies = results.filter(m => m.poster_path)
-      for (const movie of validMovies) {
-        await create(movie)
-      }
-
-      movies = await findUndiscovered(userId)
-      page++
-    }
-
-    await setDiscoverProgress(userId, page)
-    return movies
-  }
-
-  /**
    * Builds TMDB discover filters from user preference scores.
    * @param {object} scores - Weighted scores per genre and keyword.
-   * @returns {object|null} Filters object, or null if no preferences exist.
+   * @returns {object} Filters object.
    */
   #buildDiscoverFilters (scores) {
-    if (!Object.keys(scores.genres).length) return null
-
     const filters = {}
-    const topGenres = Object.entries(scores.genres)
-      // Exclude drama since it's too generic to be useful.
+
+    const topGenres = Object.entries(scores.genres ?? {})
       .filter(([id, score]) => score > 0 && !recommendation.excludedGenres.includes(id))
       .sort((a, b) => b[1] - a[1])
       .slice(0, recommendation.genreLimit)
       .map(([id]) => id)
     if (topGenres.length) filters.genres = topGenres
 
-    const negativeKeywords = Object.entries(scores.keywords)
+    const negativeKeywords = Object.entries(scores.keywords ?? {})
       .filter(([, score]) => score < 0)
       .sort((a, b) => a[1] - b[1])
       .slice(0, recommendation.negativeKeywordLimit)

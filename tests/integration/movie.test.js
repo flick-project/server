@@ -27,7 +27,9 @@ await mock.module('../../src/services/tmdbServices.js', {
     discoverMovies: mockDiscover,
     searchMovies: mock.fn(async () => ({ results: [] })),
     fetchMovieKeywords: mock.fn(async () => []),
-    fetchRecommendations: mock.fn(async () => [])
+    fetchMovieCredits: mock.fn(async () => []),
+    fetchRecommendations: mock.fn(async () => []),
+    findMovie: mock.fn(async () => ({}))
   }
 })
 
@@ -73,11 +75,11 @@ describe('GET /api/v1/movies/discover', () => {
     token = `Bearer ${loginRes.body.access_token}`
   })
 
-  it('should return movies for unauthenticated user', async () => {
+  it('should return a single movie for unauthenticated user', async () => {
     const res = await request(app)
       .get('/api/v1/movies/discover')
     assert.strictEqual(res.status, 200)
-    assert.strictEqual(res.body.movies.length, 20)
+    assert.strictEqual(res.body.movies.length, 1)
   })
 
   it('should filter out interacted movies for authenticated user', async () => {

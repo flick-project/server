@@ -80,12 +80,27 @@ export const storeKeywords = async (movieId, keywords) => {
 }
 
 /**
- * Gets 20 undiscovered movies for a user.
- * Filters interacted and rated movies.
+ * Stores credits (director + top cast) for a movie.
+ * @param {number} movieId - The TMDB movie ID.
+ * @param {Array<{id: number, name: string, role: string}>} credits - The credits.
+ */
+export const storeCredits = async (movieId, credits) => {
+  if (credits.length === 0) return
+  const values = credits.map((_, i) => `($${i * 4 + 1}, $${i * 4 + 2}, $${i * 4 + 3}, $${i * 4 + 4})`).join(', ')
+  const params = credits.flatMap(c => [movieId, c.id, c.name, c.role])
+  await pool.query(
+    `INSERT INTO movie_credits (movie_id, person_id, name, role) VALUES ${values} ON CONFLICT (movie_id, person_id) DO NOTHING`,
+    params
+  )
+}
+
+/**
+ * Gets undiscovered movies for a user, filtered by interactions, ratings, and favorites.
  * @param {number} userId - The user's ID.
+ * @param {number} [count] - Number of movies to return.
  * @returns {Promise<Array>} The undiscovered movies.
  */
-export const findUndiscovered = async (userId) => {
+export const findUndiscovered = async (userId, count = 20) => {
   const result = await pool.query(
     `SELECT tmdb_id AS id, release_date, title, genre_ids, poster_path, vote_average, vote_count, overview
     FROM movies
@@ -102,8 +117,47 @@ export const findUndiscovered = async (userId) => {
       WHERE user_id = $1
     )
     ORDER BY RANDOM()
-    LIMIT 20`,
-    [userId]
+    LIMIT $2`,
+    [userId, count]
   )
   return result.rows
+}
+
+/**
+ * Gets random undiscovered movies, excluding the user's top genres.
+ * Provides exploration variety in the pool.
+ * @param {number} userId - The user's ID.
+ * @param {number} count - Number of movies to return.
+ * @param {number[]} excludeGenres - Genre IDs to exclude.
+ * @returns {Promise<Array>} The random movies.
+ */
+export const findRandomUndiscovered = async (userId, count, excludeGenres = []) => {
+  const result = await pool.query(
+    `SELECT tmdb_id AS id, release_date, title, genre_ids, poster_path, vote_average, vote_count, overview
+    FROM movies
+    WHERE tmdb_id NOT IN (SELECT movie_id FROM movie_interactions WHERE user_id = $1 AND interaction != 'removed')
+    AND tmdb_id NOT IN (SELECT movie_id FROM ratings WHERE user_id = $1)
+    AND tmdb_id NOT IN (SELECT movie_id FROM favorites WHERE user_id = $1)
+    AND NOT (genre_ids && $2::int[])
+    ORDER BY RANDOM()
+    LIMIT $3`,
+    [userId, excludeGenres, count]
+  )
+  return result.rows
+}
+
+/**
+ * Counts the number of undiscovered movies for a user.
+ * @param {number} userId - The user's ID.
+ * @returns {Promise<number>} The count.
+ */
+export const countUndiscovered = async (userId) => {
+  const result = await pool.query(
+    `SELECT COUNT(*) FROM movies
+    WHERE tmdb_id NOT IN (SELECT movie_id FROM movie_interactions WHERE user_id = $1 AND interaction != 'removed')
+    AND tmdb_id NOT IN (SELECT movie_id FROM ratings WHERE user_id = $1)
+    AND tmdb_id NOT IN (SELECT movie_id FROM favorites WHERE user_id = $1)`,
+    [userId]
+  )
+  return parseInt(result.rows[0].count, 10)
 }
