@@ -9,13 +9,11 @@ import { recommendation } from '../config/recommendation.js'
 
 /**
  * Builds a weighted preference profile from a user's interactions, ratings, and favorites.
- * Limits preferences to the last N signals to keep the profile responsive to recent taste.
  * @param {number} userId - The user's ID.
  * @returns {Promise<object>} Weighted scores per genre, keyword, and person.
  */
 export const findUserPreferences = async (userId) => {
-  // Pull the user's most recent signals from interactions, ratings, and favorites.
-  // Each signal carries a type that maps to a weight in the recommendation config.
+  // Interactions and favorites at full weight, limited to recent window.
   const result = await pool.query(
     `SELECT u.type, u.movie_id, m.genre_ids, m.keyword_ids
      FROM (
@@ -27,24 +25,35 @@ export const findUserPreferences = async (userId) => {
          LIMIT $2
        ) mi
        UNION ALL
-       SELECT movie_id, rating AS type FROM (
-         SELECT movie_id, rating, updated_at
-         FROM ratings
-         WHERE user_id = $1
-         ORDER BY updated_at DESC
-         LIMIT $3
-       ) r
-       UNION ALL
        SELECT movie_id, 'favorite' AS type
        FROM favorites
        WHERE user_id = $1
      ) u
      JOIN movies m ON m.tmdb_id = u.movie_id`,
-    [userId, recommendation.recentWindow.interactions, recommendation.recentWindow.ratings]
+    [userId, recommendation.recentWindow]
   )
 
+  // Ratings fetched separately so decay can be applied by position.
+  // Most recent ratings come first, older ones decay exponentially by bucket.
+  const ratingsResult = await pool.query(
+    `SELECT r.movie_id, r.rating AS type, m.genre_ids, m.keyword_ids
+     FROM ratings r
+     JOIN movies m ON m.tmdb_id = r.movie_id
+     WHERE r.user_id = $1
+     ORDER BY r.updated_at DESC`,
+    [userId]
+  )
+
+  const ratedRows = ratingsResult.rows.map((row, index) => {
+    const bucketIndex = Math.floor(index / recommendation.ratingBucketSize)
+    const decayFactor = 1 / Math.pow(2, bucketIndex)
+    return { ...row, weight: recommendation.weights[row.type] * decayFactor }
+  })
+
+  const allRows = [...result.rows, ...ratedRows]
+
   // Fetch credits separately to avoid bloating the main query with joins and aggregation.
-  const movieIds = [...new Set(result.rows.map(r => r.movie_id))]
+  const movieIds = [...new Set(allRows.map(r => r.movie_id))]
   const creditsByMovie = {}
 
   if (movieIds.length > 0) {
@@ -58,7 +67,7 @@ export const findUserPreferences = async (userId) => {
     }
   }
 
-  const enrichedRows = result.rows.map(r => ({
+  const enrichedRows = allRows.map(r => ({
     ...r,
     credits: creditsByMovie[r.movie_id] ?? []
   }))
@@ -69,8 +78,6 @@ export const findUserPreferences = async (userId) => {
 
 /**
  * Aggregates weighted scores from signal rows into per-category preference maps.
- * Applies a distinct-movie threshold to keywords to prevent franchise pollution
- * (e.g. one disliked franchise dominating the negative keyword profile).
  * @param {object[]} rows - Signal rows including type, genre_ids, keyword_ids, credits.
  * @returns {object} Scores grouped by genres, keywords, and people.
  */
@@ -79,7 +86,7 @@ export const buildScores = (rows) => {
   const keywordMovies = {}
 
   for (const row of rows) {
-    const weight = recommendation.weights[row.type]
+    const weight = row.weight ?? recommendation.weights[row.type]
 
     // Genres only accumulate positive signals to avoid over-penalizing broad categories.
     row.genre_ids.forEach(id => { if (weight > 0) addScore(scores.genres, id, weight) })
@@ -106,7 +113,7 @@ export const buildScores = (rows) => {
   // This prevents single franchises from dominating the profile with niche keywords.
   if (rows.length >= recommendation.thresholdKicksInAt) {
     for (const [id, movieSet] of Object.entries(keywordMovies)) {
-      if (movieSet.size < recommendation.keywordDistinctThreshold) {
+      if (movieSet.size < recommendation.keywordMinMovies) {
         delete scores.keywords[id]
       }
     }

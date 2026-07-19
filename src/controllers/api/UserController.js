@@ -59,7 +59,7 @@ export class UserController extends BaseController {
       const resolvedKeywords = {}
       for (const [id, score] of Object.entries(preferences.scores.keywords)) {
         const count = preferences.keywordCounts[id] || 1
-        if (count < recommendation.keywordThreshold.display) continue
+        if (count < recommendation.keywordDisplayMinMovies) continue
         resolvedKeywords[titleCase(keywordNames[id] || String(id))] = score / count
       }
 

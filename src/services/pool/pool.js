@@ -75,14 +75,12 @@ const shuffle = (arr) => arr.sort(() => Math.random() - 0.5)
  */
 const filterItems = async (userId, items) => {
   const { scores } = await findUserPreferences(userId)
-  const negativeKeywords = new Set(
-    Object.entries(scores.keywords)
-      .filter(([, score]) => score < 0)
-      .sort((a, b) => a[1] - b[1])
-      .slice(0, recommendation.keywordThreshold.algorithm)
-      .map(([id]) => Number(id))
-  )
-  return items.filter(item => !item.tags.some(t => negativeKeywords.has(t.id)))
+  return items.filter(item => {
+    const keywordScore = item.tags.reduce((sum, tag) => {
+      return sum + (scores.keywords[tag.id] ?? 0)
+    }, 0)
+    return keywordScore >= recommendation.keywordScoreThreshold
+  })
 }
 
 /**

@@ -102,7 +102,7 @@ export class MovieController extends BaseController {
     const negativeKeywords = Object.entries(scores.keywords ?? {})
       .filter(([, score]) => score < 0)
       .sort((a, b) => a[1] - b[1])
-      .slice(0, recommendation.negativeKeywordLimit)
+      .slice(0, recommendation.keywordLimit)
       .map(([id]) => id)
     if (negativeKeywords.length) filters.without_keywords = negativeKeywords.join('|')
 

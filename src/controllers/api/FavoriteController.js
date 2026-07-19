@@ -37,7 +37,7 @@ export class FavoriteController extends BaseController {
       await create(movie)
       const success = await createFavorite(req.user.id, movie)
       if (success) {
-        processMovieSignal(req.user.id, movie.id, { enrich: true })
+        processMovieSignal(req.user.id, movie.id, { enrich: true, enrichPeople: true })
         res.status(201).json({ message: 'Favorite saved.' })
       } else {
         res.status(409).json({ message: 'Duplicate skipped.' })
@@ -60,7 +60,7 @@ export class FavoriteController extends BaseController {
         await create(movie)
         const success = await createFavorite(req.user.id, movie)
         if (success) {
-          await processMovieSignal(req.user.id, movie.id, { enrich: true, awaitEnrich: true })
+          await processMovieSignal(req.user.id, movie.id, { enrich: true, enrichPeople: true, awaitEnrich: true })
         }
       }
       res.status(201).json({ message: 'Favorites saved.' })

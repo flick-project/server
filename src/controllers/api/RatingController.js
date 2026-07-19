@@ -20,7 +20,10 @@ export class RatingController extends BaseController {
       const { movieId, rating } = req.body
       await ensureExists(movieId)
       const result = await createRating(req.user.id, movieId, rating)
-      processMovieSignal(req.user.id, movieId, { enrich: rating === 'love' })
+      processMovieSignal(req.user.id, movieId, {
+        enrich: rating === 'love' || rating === 'like',
+        enrichPeople: rating === 'love'
+      })
       res.status(200).json(result)
     } catch (error) {
       this.handleControllerError(error, 'Failed to register rating.', next)

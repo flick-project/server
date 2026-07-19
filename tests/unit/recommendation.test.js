@@ -3,9 +3,10 @@ import assert from 'node:assert'
 import { buildScores } from '../../src/models/recommendationModel.js'
 
 describe('buildScores', () => {
-  it('should return empty scores for no rows', () => {
-    const scores = buildScores([])
+  it('should return empty scores and counts for no rows', () => {
+    const { scores, keywordCounts } = buildScores([])
     assert.deepStrictEqual(scores, { genres: {}, keywords: {}, people: {} })
+    assert.deepStrictEqual(keywordCounts, {})
   })
 
   it('should accumulate genre scores for positive interactions', () => {
@@ -13,7 +14,7 @@ describe('buildScores', () => {
       { type: 'saved', movie_id: 1, genre_ids: [28], keyword_ids: [] },
       { type: 'saved', movie_id: 2, genre_ids: [28], keyword_ids: [] }
     ]
-    const scores = buildScores(rows)
+    const { scores } = buildScores(rows)
     assert.strictEqual(scores.genres[28], 2)
   })
 
@@ -21,7 +22,7 @@ describe('buildScores', () => {
     const rows = [
       { type: 'skipped', movie_id: 1, genre_ids: [28], keyword_ids: [] }
     ]
-    const scores = buildScores(rows)
+    const { scores } = buildScores(rows)
     assert.strictEqual(scores.genres[28], undefined)
   })
 
@@ -30,7 +31,7 @@ describe('buildScores', () => {
       { type: 'love', movie_id: 1, genre_ids: [], keyword_ids: [100] },
       { type: 'hate', movie_id: 2, genre_ids: [], keyword_ids: [100] }
     ]
-    const scores = buildScores(rows)
+    const { scores } = buildScores(rows)
     assert.strictEqual(scores.keywords[100], 0)
   })
 
@@ -39,7 +40,7 @@ describe('buildScores', () => {
       { type: 'favorite', movie_id: 1, genre_ids: [28], keyword_ids: [] },
       { type: 'saved', movie_id: 2, genre_ids: [28], keyword_ids: [] }
     ]
-    const scores = buildScores(rows)
+    const { scores } = buildScores(rows)
     assert.strictEqual(scores.genres[28], 7)
   })
 
@@ -47,7 +48,7 @@ describe('buildScores', () => {
     const rows = [
       { type: 'love', movie_id: 1, genre_ids: [28, 12], keyword_ids: [] }
     ]
-    const scores = buildScores(rows)
+    const { scores } = buildScores(rows)
     assert.strictEqual(scores.genres[28], 4)
     assert.strictEqual(scores.genres[12], 4)
   })
@@ -56,7 +57,7 @@ describe('buildScores', () => {
     const rows = [
       { type: 'unknown', movie_id: 1, genre_ids: [28], keyword_ids: [100] }
     ]
-    const scores = buildScores(rows)
+    const { scores } = buildScores(rows)
     assert.deepStrictEqual(scores, { genres: {}, keywords: {}, people: {} })
   })
 
@@ -73,8 +74,7 @@ describe('buildScores', () => {
         ]
       }
     ]
-    const scores = buildScores(rows)
-    // director: 4 * 3 = 12, cast: 4 * 1 = 4
+    const { scores } = buildScores(rows)
     assert.strictEqual(scores.people[500], 12)
     assert.strictEqual(scores.people[501], 4)
   })
@@ -91,7 +91,7 @@ describe('buildScores', () => {
         ]
       }
     ]
-    const scores = buildScores(rows)
+    const { scores } = buildScores(rows)
     assert.strictEqual(scores.people[500], undefined)
   })
 
@@ -99,8 +99,27 @@ describe('buildScores', () => {
     const rows = [
       { type: 'love', movie_id: 1, genre_ids: [], keyword_ids: [179430, 200] }
     ]
-    const scores = buildScores(rows)
+    const { scores } = buildScores(rows)
     assert.strictEqual(scores.keywords[179430], undefined)
     assert.strictEqual(scores.keywords[200], 4)
+  })
+
+  it('should track distinct movie counts per keyword', () => {
+    const rows = [
+      { type: 'saved', movie_id: 1, genre_ids: [], keyword_ids: [100] },
+      { type: 'love', movie_id: 2, genre_ids: [], keyword_ids: [100] },
+      { type: 'dismissed', movie_id: 3, genre_ids: [], keyword_ids: [100] }
+    ]
+    const { keywordCounts } = buildScores(rows)
+    assert.strictEqual(keywordCounts[100], 3)
+  })
+
+  it('should not double-count the same movie for a keyword', () => {
+    const rows = [
+      { type: 'saved', movie_id: 1, genre_ids: [], keyword_ids: [100] },
+      { type: 'love', movie_id: 1, genre_ids: [], keyword_ids: [100] }
+    ]
+    const { keywordCounts } = buildScores(rows)
+    assert.strictEqual(keywordCounts[100], 1)
   })
 })
