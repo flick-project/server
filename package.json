@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "node --watch --env-file=.env src/server.js",
     "start": "node --env-file=.env src/server.js",
-    "test": "node --env-file=.env.test --experimental-test-module-mocks --test --test-concurrency=1 tests/**/*.test.js",
+    "test": "node --env-file=.env.test node_modules/.bin/node-pg-migrate up && node --env-file=.env.test --experimental-test-module-mocks --test --test-concurrency=1 tests/**/*.test.js",
     "test:unit": "node --env-file=.env.test --test tests/unit/**/*.test.js",
     "test:integration": "node --env-file=.env.test --experimental-test-module-mocks --test tests/integration/**/*.test.js",
     "lint": "npx eslint ./src || exit 0",

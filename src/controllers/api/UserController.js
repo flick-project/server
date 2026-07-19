@@ -8,6 +8,7 @@ import { findProfileInfo, findStats, findKeywordNames } from '../../models/profi
 import { gravatarUrl } from '../../utils/gravatar.js'
 import { deleteUser } from '../../models/userModel.js'
 import { findUserPreferences } from '../../models/recommendationModel.js'
+import { recommendation } from '../../config/recommendation.js'
 
 const titleCase = (str) => str.split(' ').map(w => w ? w[0].toUpperCase() + w.slice(1) : '').join(' ')
 
@@ -53,11 +54,13 @@ export class UserController extends BaseController {
         findStats(req.user.id),
         findUserPreferences(req.user.id)
       ])
-      const keywordNames = await findKeywordNames(Object.keys(preferences.keywords).map(Number))
+      const keywordNames = await findKeywordNames(Object.keys(preferences.scores.keywords).map(Number))
 
       const resolvedKeywords = {}
-      for (const [id, score] of Object.entries(preferences.keywords)) {
-        resolvedKeywords[titleCase(keywordNames[id] || String(id))] = score
+      for (const [id, score] of Object.entries(preferences.scores.keywords)) {
+        const count = preferences.keywordCounts[id] || 1
+        if (count < recommendation.keywordThreshold.display) continue
+        resolvedKeywords[titleCase(keywordNames[id] || String(id))] = score / count
       }
 
       const stats = {
@@ -66,7 +69,7 @@ export class UserController extends BaseController {
         totalSkips: statsData.total_skips,
         totalWatched: statsData.total_watched,
         preferences: {
-          topGenres: topScores(preferences.genres, 3),
+          topGenres: topScores(preferences.scores.genres, 3),
           topKeywords: topScores(resolvedKeywords, 7),
           worstKeywords: topScores(resolvedKeywords, 10, false)
         }

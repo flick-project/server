@@ -40,7 +40,7 @@ export const findUserPreferences = async (userId) => {
        WHERE user_id = $1
      ) u
      JOIN movies m ON m.tmdb_id = u.movie_id`,
-    [userId, recommendation.interactionWindow, recommendation.ratingWindow]
+    [userId, recommendation.recentWindow.interactions, recommendation.recentWindow.ratings]
   )
 
   // Fetch credits separately to avoid bloating the main query with joins and aggregation.
@@ -63,7 +63,8 @@ export const findUserPreferences = async (userId) => {
     credits: creditsByMovie[r.movie_id] ?? []
   }))
 
-  return buildScores(enrichedRows)
+  const { scores, keywordCounts } = buildScores(enrichedRows)
+  return { scores, keywordCounts }
 }
 
 /**
@@ -111,7 +112,12 @@ export const buildScores = (rows) => {
     }
   }
 
-  return scores
+  const keywordCounts = {}
+  for (const [id, movieSet] of Object.entries(keywordMovies)) {
+    keywordCounts[id] = movieSet.size
+  }
+
+  return { scores, keywordCounts }
 }
 
 /**

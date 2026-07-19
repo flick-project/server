@@ -33,7 +33,7 @@ export class MovieController extends BaseController {
 
       const undiscoveredCount = await countUndiscovered(req.user.id)
       if (undiscoveredCount < DISCOVER_POOL) {
-        const scores = await findUserPreferences(req.user.id)
+        const { scores } = await findUserPreferences(req.user.id)
         const filters = this.#buildDiscoverFilters(scores)
         const items = await tmdbSource.discover(req.user.id, filters)
         await addToPool(req.user.id, items)

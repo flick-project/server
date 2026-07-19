@@ -17,7 +17,7 @@ export const peopleEnricher = {
    * @returns {Promise<object[]>} The enriched PoolItems.
    */
   async enrich (userId) {
-    const scores = await findUserPreferences(userId)
+    const { scores } = await findUserPreferences(userId)
     const topPeople = Object.entries(scores.people ?? {})
       .sort((a, b) => b[1] - a[1])
       .slice(0, TOP_PEOPLE_COUNT)

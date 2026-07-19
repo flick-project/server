@@ -35,7 +35,7 @@ export const servePool = async (userId, count = 20) => {
   const baseCount = count - randomCount
 
   // Determine top genres so the exploration set can exclude them.
-  const scores = await findUserPreferences(userId)
+  const { scores } = await findUserPreferences(userId)
   const topGenres = Object.entries(scores.genres ?? {})
     .filter(([, score]) => score > 0)
     .sort((a, b) => b[1] - a[1])
@@ -74,12 +74,12 @@ const shuffle = (arr) => arr.sort(() => Math.random() - 0.5)
  * @returns {Promise<object[]>} The filtered items.
  */
 const filterItems = async (userId, items) => {
-  const scores = await findUserPreferences(userId)
+  const { scores } = await findUserPreferences(userId)
   const negativeKeywords = new Set(
     Object.entries(scores.keywords)
       .filter(([, score]) => score < 0)
       .sort((a, b) => a[1] - b[1])
-      .slice(0, recommendation.negativeKeywordLimit)
+      .slice(0, recommendation.keywordThreshold.algorithm)
       .map(([id]) => Number(id))
   )
   return items.filter(item => !item.tags.some(t => negativeKeywords.has(t.id)))
