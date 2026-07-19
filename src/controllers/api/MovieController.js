@@ -30,15 +30,16 @@ export class MovieController extends BaseController {
         return res.status(200).json({ movies: items.slice(0, 1).map(fromPoolItem) })
       }
 
+      const { scores } = await findUserPreferences(req.user.id)
+
       const undiscoveredCount = await countUndiscovered(req.user.id)
       if (undiscoveredCount < DISCOVER_POOL) {
-        const { scores } = await findUserPreferences(req.user.id)
         const filters = this.#buildDiscoverFilters(scores)
         const items = await tmdbSource.discover(req.user.id, filters)
         await addToPool(req.user.id, items, 'discover', scores)
       }
 
-      const movies = await servePool(req.user.id)
+      const movies = await servePool(req.user.id, 20, scores)
       res.status(200).json({ movies })
     } catch (error) {
       this.handleControllerError(error, 'Failed to fetch movies.', next)

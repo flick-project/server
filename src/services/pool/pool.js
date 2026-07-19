@@ -4,7 +4,7 @@
  * @module services/pool/pool
  * @author Hans Nilsson
  */
-import { create, addToUserPool, findFromPool, removeFromPool, countPool } from '../../models/movieModel.js'
+import { create, addToUserPool, findFromPool, removeFromPool, pruneUserPool, countPool } from '../../models/movieModel.js'
 import { findUserPreferences } from '../../models/recommendationModel.js'
 import { recommendation } from '../../config/recommendation.js'
 
@@ -27,17 +27,40 @@ export const addToPool = async (userId, items, source = 'enriched', scores = nul
 
 /**
  * Serves a batch of movies from the user's pool, prioritizing enriched sources.
- * Removes served movies from the pool.
+ * Prunes stale entries before serving, then removes served movies from the pool.
  * @param {number} userId - The user's ID.
  * @param {number} [count] - Number of movies to return.
+ * @param {object|null} [scores] - Pre-fetched preference scores. Fetched internally if not provided.
  * @returns {Promise<Array>} The served movies.
  */
-export const servePool = async (userId, count = 20) => {
+export const servePool = async (userId, count = 20, scores = null) => {
+  const resolvedScores = scores ?? (await findUserPreferences(userId)).scores
+  await prunePool(userId, resolvedScores)
   const movies = await findFromPool(userId, count)
   if (movies.length > 0) {
     await removeFromPool(userId, movies.map(m => m.id))
   }
   return shuffle(movies)
+}
+
+/**
+ * Removes pool entries that no longer pass the keyword score threshold.
+ * Called before serving to ensure stale or newly disliked movies are dropped.
+ * @param {number} userId - The user's ID.
+ * @param {object} scores - The user's current preference scores.
+ * @returns {Promise<void>} Nothing.
+ */
+const prunePool = async (userId, scores) => {
+  const allMovies = await findFromPool(userId, 1000)
+  const stale = allMovies
+    .filter(movie => {
+      const keywordScore = (movie.keyword_ids ?? []).reduce((sum, id) => {
+        return sum + (scores.keywords[id] ?? 0)
+      }, 0)
+      return keywordScore < recommendation.keywordScoreThreshold
+    })
+    .map(m => m.id)
+  await pruneUserPool(userId, stale)
 }
 
 /**

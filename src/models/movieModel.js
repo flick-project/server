@@ -117,7 +117,7 @@ export const addToUserPool = async (userId, movieId, source) => {
  */
 export const findFromPool = async (userId, count) => {
   const result = await pool.query(
-    `SELECT m.tmdb_id AS id, m.release_date, m.title, m.genre_ids,
+    `SELECT m.tmdb_id AS id, m.release_date, m.title, m.genre_ids, m.keyword_ids,
             m.poster_path, m.vote_average, m.vote_count, m.overview,
             p.source
      FROM user_pool p
@@ -131,6 +131,20 @@ export const findFromPool = async (userId, count) => {
     [userId, count]
   )
   return result.rows
+}
+
+/**
+ * Removes specific movies from the user's pool by ID.
+ * @param {number} userId - The user's ID.
+ * @param {number[]} movieIds - The TMDB movie IDs to remove.
+ * @returns {Promise<void>} Nothing.
+ */
+export const pruneUserPool = async (userId, movieIds) => {
+  if (!movieIds.length) return
+  await pool.query(
+    'DELETE FROM user_pool WHERE user_id = $1 AND movie_id = ANY($2)',
+    [userId, movieIds]
+  )
 }
 
 /**
