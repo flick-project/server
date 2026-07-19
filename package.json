@@ -21,7 +21,7 @@
     "migrate": "node-pg-migrate",
     "migrate:up": "node-pg-migrate up",
     "migrate:down": "node-pg-migrate down",
-    "migrate:create": "node-pg-migrate create --migration-file-language js"
+    "migrate:create": "node-pg-migrate create --migration-file-language cjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

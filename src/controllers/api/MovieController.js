@@ -4,12 +4,11 @@
  * @author Hans Nilsson
  */
 import { BaseController } from './BaseController.js'
-import { countUndiscovered } from '../../models/movieModel.js'
 import { findUserPreferences } from '../../models/recommendationModel.js'
 import { findMovie, searchMovies } from '../../services/tmdbServices.js'
 import { recommendation } from '../../config/recommendation.js'
 import { tmdbSource } from '../../services/sources/tmdbSource.js'
-import { servePool, addToPool } from '../../services/pool/pool.js'
+import { servePool, addToPool, countUndiscovered } from '../../services/pool/pool.js'
 import { fromPoolItem } from '../../services/sources/tmdbMapper.js'
 
 const DISCOVER_POOL = 20
@@ -36,7 +35,7 @@ export class MovieController extends BaseController {
         const { scores } = await findUserPreferences(req.user.id)
         const filters = this.#buildDiscoverFilters(scores)
         const items = await tmdbSource.discover(req.user.id, filters)
-        await addToPool(req.user.id, items)
+        await addToPool(req.user.id, items, 'discover', scores)
       }
 
       const movies = await servePool(req.user.id)
