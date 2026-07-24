@@ -1,13 +1,7 @@
 /**
- * @type {import('node-pg-migrate').ColumnDefinitions | undefined}
- */
-exports.shorthands = undefined
-
-/**
  * @param {import('node-pg-migrate').MigrationBuilder} pgm - The migration builder.
- * @returns {Promise<void> | void} Nothing.
  */
-exports.up = (pgm) => {
+export async function up (pgm) {
   pgm.sql(`
     CREATE TABLE user_pool (
       id SERIAL PRIMARY KEY,
@@ -25,8 +19,7 @@ exports.up = (pgm) => {
 
 /**
  * @param {import('node-pg-migrate').MigrationBuilder} pgm - The migration builder.
- * @returns {Promise<void> | void} Nothing.
  */
-exports.down = (pgm) => {
+export async function down (pgm) {
   pgm.sql('DROP TABLE IF EXISTS user_pool CASCADE;')
 }

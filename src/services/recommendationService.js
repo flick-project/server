@@ -4,6 +4,7 @@
  * @author Hans Nilsson
  */
 import { storeKeywords, storeCredits } from '../models/movieModel.js'
+import { findUnprocessed, markProcessed } from '../models/ratingModel.js'
 import { fetchMovieKeywords, fetchMovieCredits } from './tmdbServices.js'
 import { addToPool } from './pool/pool.js'
 import { recommendationEnricher } from './enrichers/recommendationEnricher.js'
@@ -36,5 +37,25 @@ export const processMovieSignal = async (userId, movieId, { enrich = false, enri
       await addToPool(userId, items)
     })().catch(console.error)
     if (awaitEnrich) await job
+  }
+}
+
+/**
+ * Processes a batch of unprocessed ratings by fetching recommendations
+ * and adding them to the pool. Runs in the background.
+ * @param {number} userId - The user's ID.
+ */
+export const enrichPendingRatings = async (userId) => {
+  const pending = await findUnprocessed(userId)
+
+  for (const { movie_id: movieId, rating } of pending) {
+    const recItems = await recommendationEnricher.enrich(userId, movieId)
+    if (rating === 'love') {
+      const peopleItems = await peopleEnricher.enrich(userId)
+      await addToPool(userId, [...recItems, ...peopleItems])
+    } else {
+      await addToPool(userId, recItems)
+    }
+    await markProcessed(userId, movieId)
   }
 }
