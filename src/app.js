@@ -26,14 +26,27 @@ app.use(cors({
   credentials: true
 }))
 
-// Limit to 100 requests per 15 minutes, returns 429 when exceeded.
-app.use(rateLimit({
+// Limit to 100 requests per 15 minutes.
+const globalLimiter = rateLimit({
   windowMs: process.env.NODE_ENV === 'production' ? 60000 : 15 * 60 * 1000,
   limit: process.env.NODE_ENV === 'production' ? 100 : 1000,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { status: 429, message: 'Too many requests, please try again later.' }
-}))
+})
+
+// Limit the importer to 1000 requests every hour.
+const importLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 100,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { status: 429, message: 'Import rate limit exceeded, please try again later.' }
+})
+
+app.use('/api/v1/import', importLimiter)
+
+app.use(globalLimiter)
 
 // Parse cookie header and populate req.cookies.
 app.use(cookieParser())

@@ -13,6 +13,7 @@ import { router as interactionRouter } from './interactionRouter.js'
 import { router as favoriteRouter } from './favoriteRouter.js'
 import { router as ratingRouter } from './ratingRouter.js'
 import { router as imageRouter } from './imageRouter.js'
+import { router as importRouter } from './importRouter.js'
 
 export const router = express.Router()
 
@@ -26,6 +27,7 @@ router.use('/interactions', interactionRouter)
 router.use('/favorites', favoriteRouter)
 router.use('/ratings', ratingRouter)
 router.use('/images', imageRouter)
+router.use('/import', importRouter)
 
 // Test rate limiter.
 router.get('/test/rate-limit', (req, res) => {

@@ -49,8 +49,8 @@ export const ensureExists = async (movieId) => {
 export const create = async (movie) => {
   validate(movie)
   await pool.query(
-    'INSERT INTO movies (tmdb_id, release_date, title, genre_ids, poster_path, vote_average, vote_count, overview) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (tmdb_id) DO NOTHING',
-    [movie.id, movie.release_date, movie.title, movie.genre_ids, movie.poster_path, movie.vote_average, movie.vote_count, movie.overview]
+    'INSERT INTO movies (tmdb_id, release_date, title, genre_ids, poster_path, vote_average, vote_count, overview, imdb_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (tmdb_id) DO NOTHING',
+    [movie.id, movie.release_date, movie.title, movie.genre_ids, movie.poster_path, movie.vote_average, movie.vote_count, movie.overview, movie.imdb_id ?? null]
   )
 }
 
@@ -174,4 +174,22 @@ export const countPool = async (userId) => {
     [userId]
   )
   return parseInt(result.rows[0].count, 10)
+}
+
+/**
+ * Finds movies the user has already interacted with, rated, or favorited.
+ * @param {number} userId - The user's ID.
+ * @param {number[]} movieIds - The TMDB movie IDs to check.
+ * @returns {Promise<Set<number>>} Set of movie IDs the user has already engaged with.
+ */
+export const findExistingInteractions = async (userId, movieIds) => {
+  const result = await pool.query(
+    `SELECT movie_id FROM (
+       SELECT movie_id FROM movie_interactions WHERE user_id = $1 AND interaction != 'removed' AND movie_id = ANY($2)
+       UNION SELECT movie_id FROM ratings WHERE user_id = $1 AND movie_id = ANY($2)
+       UNION SELECT movie_id FROM favorites WHERE user_id = $1 AND movie_id = ANY($2)
+     ) existing`,
+    [userId, movieIds]
+  )
+  return new Set(result.rows.map(r => r.movie_id))
 }

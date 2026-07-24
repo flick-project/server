@@ -45,6 +45,27 @@ export const createRating = async (userId, movieId, rating) => {
 }
 
 /**
+ * Creates a rating only if one doesn't already exist.
+ * @param {number} userId - The user's ID.
+ * @param {number} movieId - The TMDB movie ID.
+ * @param {string} rating - The rating (love, like, dislike, hate).
+ * @returns {Promise<boolean>} True if created, false if skipped.
+ */
+export const createRatingIfAbsent = async (userId, movieId, rating) => {
+  validate(rating)
+  const validMovieId = validateTmdbId(movieId)
+
+  const result = await pool.query(
+    `INSERT INTO ratings (user_id, movie_id, rating)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (user_id, movie_id) DO NOTHING
+     RETURNING id`,
+    [userId, validMovieId, rating]
+  )
+  return result.rows.length > 0
+}
+
+/**
  * Remove a user's movie rating.
  * @param {number} userId - The user's ID.
  * @param {number} movieId - The rating to delete.
@@ -60,4 +81,33 @@ export const removeRating = async (userId, movieId) => {
   )
 
   return result.rowCount > 0
+}
+
+/**
+ * Finds ratings that haven't been processed for pool enrichment.
+ * @param {number} userId - The user's ID.
+ * @param {number} limit - Max ratings to return.
+ * @returns {Promise<Array>} Unprocessed ratings.
+ */
+export const findUnprocessed = async (userId, limit = 5) => {
+  const result = await pool.query(
+    `SELECT movie_id, rating FROM ratings
+     WHERE user_id = $1 AND processed = false AND rating IN ('love', 'like')
+     ORDER BY created_at DESC
+     LIMIT $2`,
+    [userId, limit]
+  )
+  return result.rows
+}
+
+/**
+ * Marks a rating as processed for pool enrichment.
+ * @param {number} userId - The user's ID.
+ * @param {number} movieId - The TMDB movie ID.
+ */
+export const markProcessed = async (userId, movieId) => {
+  await pool.query(
+    'UPDATE ratings SET processed = true WHERE user_id = $1 AND movie_id = $2',
+    [userId, movieId]
+  )
 }
