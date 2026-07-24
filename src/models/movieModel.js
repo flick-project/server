@@ -49,8 +49,8 @@ export const ensureExists = async (movieId) => {
 export const create = async (movie) => {
   validate(movie)
   await pool.query(
-    'INSERT INTO movies (tmdb_id, release_date, title, genre_ids, poster_path, vote_average, vote_count, overview) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) ON CONFLICT (tmdb_id) DO NOTHING',
-    [movie.id, movie.release_date, movie.title, movie.genre_ids, movie.poster_path, movie.vote_average, movie.vote_count, movie.overview]
+    'INSERT INTO movies (tmdb_id, release_date, title, genre_ids, poster_path, vote_average, vote_count, overview, imdb_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT (tmdb_id) DO NOTHING',
+    [movie.id, movie.release_date, movie.title, movie.genre_ids, movie.poster_path, movie.vote_average, movie.vote_count, movie.overview, movie.imdb_id ?? null]
   )
 }
 
@@ -95,69 +95,101 @@ export const storeCredits = async (movieId, credits) => {
 }
 
 /**
- * Gets undiscovered movies for a user, filtered by interactions, ratings, and favorites.
+ * Adds a movie to the user's pool with a source tag.
  * @param {number} userId - The user's ID.
- * @param {number} [count] - Number of movies to return.
- * @returns {Promise<Array>} The undiscovered movies.
+ * @param {number} movieId - The TMDB movie ID.
+ * @param {string} source - The source of the movie ('discover' or 'enriched').
  */
-export const findUndiscovered = async (userId, count = 20) => {
+export const addToUserPool = async (userId, movieId, source) => {
+  await pool.query(
+    `INSERT INTO user_pool (user_id, movie_id, source)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (user_id, movie_id) DO NOTHING`,
+    [userId, movieId, source]
+  )
+}
+
+/**
+ * Serves movies from the user's pool, prioritizing enriched sources.
+ * @param {number} userId - The user's ID.
+ * @param {number} count - Number of movies to return.
+ * @returns {Promise<Array>} The pool movies.
+ */
+export const findFromPool = async (userId, count) => {
   const result = await pool.query(
-    `SELECT tmdb_id AS id, release_date, title, genre_ids, poster_path, vote_average, vote_count, overview
-    FROM movies
-    WHERE tmdb_id NOT IN (
-      SELECT movie_id FROM movie_interactions
-      WHERE user_id = $1 AND interaction != 'removed'
-    )
-    AND tmdb_id NOT IN (
-      SELECT movie_id FROM ratings
-      WHERE user_id = $1
-    )
-    AND tmdb_id NOT IN (
-      SELECT movie_id FROM favorites
-      WHERE user_id = $1
-    )
-    ORDER BY RANDOM()
-    LIMIT $2`,
+    `SELECT m.tmdb_id AS id, m.release_date, m.title, m.genre_ids, m.keyword_ids,
+            m.poster_path, m.vote_average, m.vote_count, m.overview,
+            p.source
+     FROM user_pool p
+     JOIN movies m ON m.tmdb_id = p.movie_id
+     WHERE p.user_id = $1
+     AND m.tmdb_id NOT IN (SELECT movie_id FROM movie_interactions WHERE user_id = $1 AND interaction != 'removed')
+     AND m.tmdb_id NOT IN (SELECT movie_id FROM ratings WHERE user_id = $1)
+     AND m.tmdb_id NOT IN (SELECT movie_id FROM favorites WHERE user_id = $1)
+     ORDER BY CASE WHEN p.source = 'enriched' THEN 0 ELSE 1 END, p.created_at ASC
+     LIMIT $2`,
     [userId, count]
   )
   return result.rows
 }
 
 /**
- * Gets random undiscovered movies, excluding the user's top genres.
- * Provides exploration variety in the pool.
+ * Removes specific movies from the user's pool by ID.
  * @param {number} userId - The user's ID.
- * @param {number} count - Number of movies to return.
- * @param {number[]} excludeGenres - Genre IDs to exclude.
- * @returns {Promise<Array>} The random movies.
+ * @param {number[]} movieIds - The TMDB movie IDs to remove.
+ * @returns {Promise<void>} Nothing.
  */
-export const findRandomUndiscovered = async (userId, count, excludeGenres = []) => {
-  const result = await pool.query(
-    `SELECT tmdb_id AS id, release_date, title, genre_ids, poster_path, vote_average, vote_count, overview
-    FROM movies
-    WHERE tmdb_id NOT IN (SELECT movie_id FROM movie_interactions WHERE user_id = $1 AND interaction != 'removed')
-    AND tmdb_id NOT IN (SELECT movie_id FROM ratings WHERE user_id = $1)
-    AND tmdb_id NOT IN (SELECT movie_id FROM favorites WHERE user_id = $1)
-    AND NOT (genre_ids && $2::int[])
-    ORDER BY RANDOM()
-    LIMIT $3`,
-    [userId, excludeGenres, count]
+export const pruneUserPool = async (userId, movieIds) => {
+  if (!movieIds.length) return
+  await pool.query(
+    'DELETE FROM user_pool WHERE user_id = $1 AND movie_id = ANY($2)',
+    [userId, movieIds]
   )
-  return result.rows
 }
 
 /**
- * Counts the number of undiscovered movies for a user.
+ * Removes movies from the user's pool after they've been served.
+ * @param {number} userId - The user's ID.
+ * @param {number[]} movieIds - The TMDB movie IDs to remove.
+ */
+export const removeFromPool = async (userId, movieIds) => {
+  await pool.query(
+    'DELETE FROM user_pool WHERE user_id = $1 AND movie_id = ANY($2)',
+    [userId, movieIds]
+  )
+}
+
+/**
+ * Counts the number of movies in the user's pool.
  * @param {number} userId - The user's ID.
  * @returns {Promise<number>} The count.
  */
-export const countUndiscovered = async (userId) => {
+export const countPool = async (userId) => {
   const result = await pool.query(
-    `SELECT COUNT(*) FROM movies
-    WHERE tmdb_id NOT IN (SELECT movie_id FROM movie_interactions WHERE user_id = $1 AND interaction != 'removed')
-    AND tmdb_id NOT IN (SELECT movie_id FROM ratings WHERE user_id = $1)
-    AND tmdb_id NOT IN (SELECT movie_id FROM favorites WHERE user_id = $1)`,
+    `SELECT COUNT(*) FROM user_pool p
+     WHERE p.user_id = $1
+     AND p.movie_id NOT IN (SELECT movie_id FROM movie_interactions WHERE user_id = $1 AND interaction != 'removed')
+     AND p.movie_id NOT IN (SELECT movie_id FROM ratings WHERE user_id = $1)
+     AND p.movie_id NOT IN (SELECT movie_id FROM favorites WHERE user_id = $1)`,
     [userId]
   )
   return parseInt(result.rows[0].count, 10)
+}
+
+/**
+ * Finds movies the user has already interacted with, rated, or favorited.
+ * @param {number} userId - The user's ID.
+ * @param {number[]} movieIds - The TMDB movie IDs to check.
+ * @returns {Promise<Set<number>>} Set of movie IDs the user has already engaged with.
+ */
+export const findExistingInteractions = async (userId, movieIds) => {
+  const result = await pool.query(
+    `SELECT movie_id FROM (
+       SELECT movie_id FROM movie_interactions WHERE user_id = $1 AND interaction != 'removed' AND movie_id = ANY($2)
+       UNION SELECT movie_id FROM ratings WHERE user_id = $1 AND movie_id = ANY($2)
+       UNION SELECT movie_id FROM favorites WHERE user_id = $1 AND movie_id = ANY($2)
+     ) existing`,
+    [userId, movieIds]
+  )
+  return new Set(result.rows.map(r => r.movie_id))
 }

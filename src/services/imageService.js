@@ -32,7 +32,6 @@ const saveAsWebp = async (buffer, filePath) => {
     const temp = `${filePath}.tmp`
     await sharp(buffer).webp({ quality: 75 }).toFile(temp)
     await fs.rename(temp, filePath)
-    console.log(`Saved WebP: ${filePath}`)
   } catch (error) {
     console.error(`Failed to save WebP: ${filePath}`, error)
   }

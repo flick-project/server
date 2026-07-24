@@ -1,14 +1,7 @@
 /**
- * @type {import('node-pg-migrate').ColumnDefinitions | undefined}
+ * @param {import('node-pg-migrate').MigrationBuilder} pgm - The migration builder.
  */
-exports.shorthands = undefined
-
-/**
- * @param pgm {import('node-pg-migrate').MigrationBuilder}
- * @param run {() => void | undefined}
- * @returns {Promise<void> | void}
- */
-exports.up = (pgm) => {
+export async function up (pgm) {
   pgm.sql(`
     CREATE TABLE users (
       id SERIAL PRIMARY KEY,
@@ -88,11 +81,9 @@ exports.up = (pgm) => {
 }
 
 /**
- * @param pgm {import('node-pg-migrate').MigrationBuilder}
- * @param run {() => void | undefined}
- * @returns {Promise<void> | void}
+ * @param {import('node-pg-migrate').MigrationBuilder} pgm - The migration builder.
  */
-exports.down = (pgm) => {
+export async function down (pgm) {
   pgm.sql(`
     DROP TABLE IF EXISTS refresh_tokens, ratings, favorites, movie_interactions, movie_credits, keywords, movies, users CASCADE;
   `)

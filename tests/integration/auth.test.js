@@ -7,6 +7,8 @@ import pool from '../../src/config/db.js'
 mock.method(console, 'error', () => {})
 
 before(async () => {
+  await pool.query('DELETE FROM user_pool')
+  await pool.query('DELETE FROM ratings')
   await pool.query('DELETE FROM refresh_tokens')
   await pool.query('DELETE FROM users')
   await request(app)
@@ -15,6 +17,8 @@ before(async () => {
 })
 
 after(async () => {
+  await pool.query('DELETE FROM user_pool')
+  await pool.query('DELETE FROM ratings')
   await pool.query('DELETE FROM refresh_tokens')
   await pool.query('DELETE FROM users')
   await pool.end()

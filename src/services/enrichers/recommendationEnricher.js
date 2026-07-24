@@ -5,6 +5,7 @@
  */
 import { fetchRecommendations, fetchMovieKeywords } from '../tmdbServices.js'
 import { toPoolItem } from '../sources/tmdbMapper.js'
+import { findExistingInteractions } from '../../models/movieModel.js'
 
 const ENRICH_LIMIT = 5
 
@@ -18,11 +19,16 @@ export const recommendationEnricher = {
    */
   async enrich (userId, movieId) {
     const recommendations = await fetchRecommendations(movieId)
-    const candidates = recommendations.filter(m => m.poster_path).slice(0, ENRICH_LIMIT)
+    const candidates = recommendations.filter(m => m.poster_path)
 
-    // Fetch keywords in parallel so pool can filter on tags.
+    const movieIds = candidates.map(m => m.id)
+    const existing = await findExistingInteractions(userId, movieIds)
+    const fresh = candidates.filter(m => !existing.has(m.id)).slice(0, ENRICH_LIMIT)
+
+    if (!fresh.length) return []
+
     const withKeywords = await Promise.all(
-      candidates.map(async (movie) => {
+      fresh.map(async (movie) => {
         const keywords = await fetchMovieKeywords(movie.id)
         return { ...movie, tags: keywords }
       })

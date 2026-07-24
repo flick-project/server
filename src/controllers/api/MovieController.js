@@ -4,13 +4,13 @@
  * @author Hans Nilsson
  */
 import { BaseController } from './BaseController.js'
-import { countUndiscovered } from '../../models/movieModel.js'
 import { findUserPreferences } from '../../models/recommendationModel.js'
 import { findMovie, searchMovies } from '../../services/tmdbServices.js'
 import { recommendation } from '../../config/recommendation.js'
 import { tmdbSource } from '../../services/sources/tmdbSource.js'
-import { servePool, addToPool } from '../../services/pool/pool.js'
+import { servePool, addToPool, countUndiscovered } from '../../services/pool/pool.js'
 import { fromPoolItem } from '../../services/sources/tmdbMapper.js'
+import { enrichPendingRatings } from '../../services/recommendationService.js'
 
 const DISCOVER_POOL = 20
 
@@ -31,18 +31,46 @@ export class MovieController extends BaseController {
         return res.status(200).json({ movies: items.slice(0, 1).map(fromPoolItem) })
       }
 
+      const { scores } = await findUserPreferences(req.user.id)
+
+      // Enrich from pending ratings first.
+      await enrichPendingRatings(req.user.id)
+
+      // Only fill remaining slots with discover.
       const undiscoveredCount = await countUndiscovered(req.user.id)
       if (undiscoveredCount < DISCOVER_POOL) {
-        const scores = await findUserPreferences(req.user.id)
         const filters = this.#buildDiscoverFilters(scores)
         const items = await tmdbSource.discover(req.user.id, filters)
-        await addToPool(req.user.id, items)
+        await addToPool(req.user.id, items, 'discover', scores)
       }
 
-      const movies = await servePool(req.user.id)
+      const movies = await servePool(req.user.id, 20, scores)
       res.status(200).json({ movies })
     } catch (error) {
       this.handleControllerError(error, 'Failed to fetch movies.', next)
+    }
+  }
+
+  /**
+   * Restocks the user's pool without serving movies.
+   * Used after import to fill the pool based on updated taste profile.
+   * @param {object} req - Express's request object.
+   * @param {object} res - Express's response object.
+   * @param {(error: Error) => void} next - Express's next function.
+   */
+  async restock (req, res, next) {
+    try {
+      const { scores } = await findUserPreferences(req.user.id)
+      const undiscoveredCount = await countUndiscovered(req.user.id)
+      if (undiscoveredCount < DISCOVER_POOL) {
+        const filters = this.#buildDiscoverFilters(scores)
+        const items = await tmdbSource.discover(req.user.id, filters)
+        await addToPool(req.user.id, items, 'discover', scores)
+      }
+      res.status(204).end()
+      enrichPendingRatings(req.user.id).catch(console.error)
+    } catch (error) {
+      this.handleControllerError(error, 'Failed to restock pool.', next)
     }
   }
 
@@ -102,7 +130,7 @@ export class MovieController extends BaseController {
     const negativeKeywords = Object.entries(scores.keywords ?? {})
       .filter(([, score]) => score < 0)
       .sort((a, b) => a[1] - b[1])
-      .slice(0, recommendation.negativeKeywordLimit)
+      .slice(0, recommendation.keywordLimit)
       .map(([id]) => id)
     if (negativeKeywords.length) filters.without_keywords = negativeKeywords.join('|')
 
