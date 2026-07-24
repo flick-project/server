@@ -23,7 +23,8 @@ await mock.module('../../src/services/tmdbServices.js', {
     fetchMovieKeywords: mock.fn(async () => []),
     fetchMovieCredits: mock.fn(async () => []),
     fetchRecommendations: mock.fn(async () => ({ results: [] })),
-    findMovie: mock.fn(async () => testMovie)
+    findMovie: mock.fn(async () => testMovie),
+    findByImdbId: mock.fn(async () => null)
   }
 })
 
@@ -32,6 +33,7 @@ const { create } = await import('../../src/models/movieModel.js')
 
 // Create test movie and test user.
 before(async () => {
+  await pool.query('DELETE FROM user_pool')
   await pool.query('DELETE FROM movie_interactions')
   await pool.query('DELETE FROM movies')
   await pool.query('DELETE FROM users')
@@ -42,6 +44,7 @@ before(async () => {
 })
 
 after(async () => {
+  await pool.query('DELETE FROM user_pool')
   await pool.query('DELETE FROM movie_interactions')
   await pool.query('DELETE FROM movies')
   await pool.query('DELETE FROM users')
