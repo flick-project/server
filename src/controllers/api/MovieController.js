@@ -10,6 +10,7 @@ import { recommendation } from '../../config/recommendation.js'
 import { tmdbSource } from '../../services/sources/tmdbSource.js'
 import { servePool, addToPool, countUndiscovered } from '../../services/pool/pool.js'
 import { fromPoolItem } from '../../services/sources/tmdbMapper.js'
+import { enrichPendingRatings } from '../../services/recommendationService.js'
 
 const DISCOVER_POOL = 20
 
@@ -32,6 +33,10 @@ export class MovieController extends BaseController {
 
       const { scores } = await findUserPreferences(req.user.id)
 
+      // Enrich from pending ratings first.
+      await enrichPendingRatings(req.user.id)
+
+      // Only fill remaining slots with discover.
       const undiscoveredCount = await countUndiscovered(req.user.id)
       if (undiscoveredCount < DISCOVER_POOL) {
         const filters = this.#buildDiscoverFilters(scores)
@@ -43,6 +48,29 @@ export class MovieController extends BaseController {
       res.status(200).json({ movies })
     } catch (error) {
       this.handleControllerError(error, 'Failed to fetch movies.', next)
+    }
+  }
+
+  /**
+   * Restocks the user's pool without serving movies.
+   * Used after import to fill the pool based on updated taste profile.
+   * @param {object} req - Express's request object.
+   * @param {object} res - Express's response object.
+   * @param {(error: Error) => void} next - Express's next function.
+   */
+  async restock (req, res, next) {
+    try {
+      const { scores } = await findUserPreferences(req.user.id)
+      const undiscoveredCount = await countUndiscovered(req.user.id)
+      if (undiscoveredCount < DISCOVER_POOL) {
+        const filters = this.#buildDiscoverFilters(scores)
+        const items = await tmdbSource.discover(req.user.id, filters)
+        await addToPool(req.user.id, items, 'discover', scores)
+      }
+      res.status(204).end()
+      enrichPendingRatings(req.user.id).catch(console.error)
+    } catch (error) {
+      this.handleControllerError(error, 'Failed to restock pool.', next)
     }
   }
 

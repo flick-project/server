@@ -4,7 +4,7 @@
  * @module services/pool/pool
  * @author Hans Nilsson
  */
-import { create, addToUserPool, findFromPool, removeFromPool, pruneUserPool, countPool } from '../../models/movieModel.js'
+import { create, addToUserPool, findFromPool, removeFromPool, pruneUserPool, countPool, findExistingInteractions } from '../../models/movieModel.js'
 import { findUserPreferences } from '../../models/recommendationModel.js'
 import { recommendation } from '../../config/recommendation.js'
 
@@ -19,7 +19,15 @@ import { recommendation } from '../../config/recommendation.js'
 export const addToPool = async (userId, items, source = 'enriched', scores = null) => {
   const resolvedScores = scores ?? (await findUserPreferences(userId)).scores
   const filtered = filterItems(resolvedScores, items)
+
+  // Exclude movies the user has already interacted with or rated.
+  const movieIds = filtered.map(item => item.id)
+  if (!movieIds.length) return
+
+  const existing = await findExistingInteractions(userId, movieIds)
+
   for (const item of filtered) {
+    if (existing.has(item.id)) continue
     await create(itemToMovie(item))
     await addToUserPool(userId, item.id, source)
   }
