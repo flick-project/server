@@ -69,8 +69,8 @@ export class UserController extends BaseController {
         totalSkips: statsData.total_skips,
         totalWatched: statsData.total_watched,
         preferences: {
-          topGenres: topScores(preferences.scores.genres, 3),
-          topKeywords: topScores(resolvedKeywords, 7),
+          topGenres: topScores(preferences.scores.genres, 2),
+          topKeywords: topScores(resolvedKeywords, 8),
           worstKeywords: topScores(resolvedKeywords, 10, false)
         }
       }

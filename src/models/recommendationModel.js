@@ -46,7 +46,7 @@ export const findUserPreferences = async (userId) => {
 
   const ratedRows = ratingsResult.rows.map((row, index) => {
     const bucketIndex = Math.floor(index / recommendation.ratingBucketSize)
-    const decayFactor = 1 / Math.pow(2, bucketIndex)
+    const decayFactor = 1 / Math.pow(recommendation.ratingDecayBase, bucketIndex)
     return { ...row, weight: recommendation.weights[row.type] * decayFactor }
   })
 
@@ -89,7 +89,10 @@ export const buildScores = (rows) => {
     const weight = row.weight ?? recommendation.weights[row.type]
 
     // Genres only accumulate positive signals to avoid over-penalizing broad categories.
-    row.genre_ids.forEach(id => { if (weight > 0) addScore(scores.genres, id, weight) })
+    row.genre_ids.forEach(id => {
+      if (recommendation.genreBlocklist.includes(id)) return
+      if (weight > 0) addScore(scores.genres, id, weight)
+    })
 
     // Keywords accumulate both positive and negative signals (they're specific enough to matter).
     row.keyword_ids.forEach(id => {
