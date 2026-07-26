@@ -121,7 +121,7 @@ export class MovieController extends BaseController {
     const filters = {}
 
     const topGenres = Object.entries(scores.genres ?? {})
-      .filter(([id, score]) => score > 0 && !recommendation.excludedGenres.includes(id))
+      .filter(([id, score]) => score > 0 && !recommendation.genreBlocklist.includes(Number(id)))
       .sort((a, b) => b[1] - a[1])
       .slice(0, recommendation.genreLimit)
       .map(([id]) => id)

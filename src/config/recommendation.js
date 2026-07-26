@@ -18,16 +18,15 @@ export const recommendation = {
   },
 
   // Recent interactions within this window are scored at full weight.
-  recentWindow: 200,
+  recentWindow: 100,
 
   // Ratings are split into buckets of this size, ordered most recent first.
-  // Each bucket's weight is halved: bucket 0 = full, bucket 1 = half, bucket 2 = quarter, etc.
   ratingBucketSize: 100,
+  ratingDecayBase: 1.1,
 
   // Discovery filters.
   genreLimit: 5,
   keywordLimit: 10,
-  excludedGenres: ['18'],
 
   // Keywords need this many distinct movies before they affect scoring.
   keywordMinMovies: 2,
@@ -38,6 +37,10 @@ export const recommendation = {
 
   // Minimum signal count before keyword thresholds kick in.
   thresholdKicksInAt: 100,
+
+  // Genres excluded from scoring entirely. Drama (18) appears on nearly
+  // everything, so it adds noise without useful signal.
+  genreBlocklist: [18],
 
   // Keywords excluded from scoring entirely.
   keywordBlocklist: [
