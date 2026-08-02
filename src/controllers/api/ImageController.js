@@ -4,40 +4,60 @@
  * @author Hans Nilsson
  */
 import { BaseController } from './BaseController.js'
-import { getPosterStream } from '../../services/imageService.js'
+import { getPosterStream, getBackdropStream } from '../../services/imageService.js'
 
-const POSTER_ID_PATTERN = /^[a-zA-Z0-9]+\.\w+$/
+const IMAGE_ID_PATTERN = /^[a-zA-Z0-9]+\.\w+$/
+const CACHE_MAX_AGE = 60 * 60 * 24 * 365 // 1 year
 
 export class ImageController extends BaseController {
   /**
    * Serves a movie poster image.
-   * If the poster+width combination is cached as WebP, stream it directly.
-   * On first request, fetches the original from TMDB, streams it as JPEG,
-   * then asynchronously converts and caches a WebP version for future requests.
    * @param {object} req - Express's request object.
    * @param {object} res - Express's response object.
-   * @param {(error: Error) => void} next - Express's next function to pass the error to the error-handling middleware.
+   * @param {(error: Error) => void} next - Express's next function.
    * @returns {void}
    */
   async poster (req, res, next) {
+    await this.#serveImage(req, res, next, getPosterStream, 'poster')
+  }
+
+  /**
+   * Serves a movie backdrop image.
+   * @param {object} req - Express's request object.
+   * @param {object} res - Express's response object.
+   * @param {(error: Error) => void} next - Express's next function.
+   * @returns {void}
+   */
+  async backdrop (req, res, next) {
+    await this.#serveImage(req, res, next, getBackdropStream, 'backdrop')
+  }
+
+  /**
+   * Shared logic for serving an image from a service function.
+   * @param {object} req - Express's request object.
+   * @param {object} res - Express's response object.
+   * @param {(error: Error) => void} next - Express's next function.
+   * @param {void} getStream - Service function to fetch the image stream.
+   * @param {string} label - Image label for error messages.
+   * @returns {void}
+   */
+  async #serveImage (req, res, next, getStream, label) {
     const { id } = req.params
-    if (!POSTER_ID_PATTERN.test(id)) {
-      return res.status(400).json({ message: 'Invalid poster ID.' })
+    if (!IMAGE_ID_PATTERN.test(id)) {
+      return res.status(400).json({ message: `Invalid ${label} ID.` })
     }
     try {
-      const posterPath = '/' + req.params.id
-      const width = parseInt(req.query.w) || 300
-      const { stream, contentType } = await getPosterStream(posterPath, width)
+      const imagePath = '/' + id
+      const width = parseInt(req.query.w) || undefined
+      const { stream, contentType } = await getStream(imagePath, width)
 
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
       res.setHeader('Content-Type', contentType)
-
-      const maxAge = 60 * 60 * 24 * 30 // 30 days
-      res.setHeader('Cache-Control', `public, max-age=${maxAge}, immutable`)
+      res.setHeader('Cache-Control', `public, max-age=${CACHE_MAX_AGE}, immutable`)
 
       stream.pipe(res)
     } catch (error) {
-      this.handleControllerError(error, 'Failed to serve poster.', next)
+      this.handleControllerError(error, `Failed to serve ${label}.`, next)
     }
   }
 }
