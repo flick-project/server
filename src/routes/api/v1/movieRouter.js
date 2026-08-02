@@ -14,5 +14,6 @@ const controller = new MovieController()
 // Map HTTP verbs and route paths to controller actions.
 router.get('/discover', optionalAuth, controller.discover.bind(controller))
 router.get('/search', optionalAuth, controller.search.bind(controller))
-router.get('/:tmdbId', optionalAuth, controller.find.bind(controller))
 router.post('/restock', authenticateJWT, controller.restock.bind(controller))
+router.get('/:tmdbId/details', optionalAuth, controller.findWithDetails.bind(controller))
+router.get('/:tmdbId', optionalAuth, controller.find.bind(controller))
