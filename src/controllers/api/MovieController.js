@@ -5,12 +5,14 @@
  */
 import { BaseController } from './BaseController.js'
 import { findUserPreferences } from '../../models/recommendationModel.js'
-import { findMovie, searchMovies } from '../../services/tmdbServices.js'
+import { findMovie, findMovieWithDetails, searchMovies } from '../../services/tmdbServices.js'
 import { recommendation } from '../../config/recommendation.js'
 import { tmdbSource } from '../../services/sources/tmdbSource.js'
 import { servePool, addToPool, countUndiscovered } from '../../services/pool/pool.js'
 import { fromPoolItem } from '../../services/sources/tmdbMapper.js'
 import { enrichPendingRatings } from '../../services/recommendationService.js'
+import { isSaved } from '../../models/watchlistModel.js'
+import { findUserRating } from '../../models/ratingModel.js'
 
 const DISCOVER_POOL = 20
 
@@ -106,6 +108,33 @@ export class MovieController extends BaseController {
     try {
       const { tmdbId } = req.params
       const movie = await findMovie(tmdbId)
+      res.status(200).json(movie)
+    } catch (error) {
+      this.handleControllerError(error, 'Failed to fetch movie.', next)
+    }
+  }
+
+  /**
+   * Fetches a single movie, including credits and videos by TMDB ID,
+   * as well as the user's interactions and ratings on said movie.
+   * @param {object} req - Express's request object.
+   * @param {object} res - Express's response object.
+   * @param {(error: Error) => void} next - Express's next function.
+   */
+  async findWithDetails (req, res, next) {
+    try {
+      const { tmdbId } = req.params
+      const movie = await findMovieWithDetails(tmdbId)
+
+      if (req.user) {
+        const [saved, rating] = await Promise.all([
+          isSaved(req.user.id, tmdbId),
+          findUserRating(req.user.id, tmdbId)
+        ])
+        movie.saved = saved
+        movie.user_rating = rating
+      }
+
       res.status(200).json(movie)
     } catch (error) {
       this.handleControllerError(error, 'Failed to fetch movie.', next)

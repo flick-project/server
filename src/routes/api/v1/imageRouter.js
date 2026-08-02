@@ -10,3 +10,4 @@ export const router = express.Router()
 const controller = new ImageController()
 
 router.get('/posters/:id', controller.poster.bind(controller))
+router.get('/backdrops/:id', controller.backdrop.bind(controller))

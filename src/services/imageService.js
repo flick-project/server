@@ -10,23 +10,42 @@ import { Readable } from 'stream'
 import sharp from 'sharp'
 
 const POSTERS_DIR = process.env.POSTER_DIR || './posters'
-const VALID_WIDTHS = [92, 154, 185, 300, 500, 780]
+const BACKDROPS_DIR = process.env.BACKDROP_DIR || './backdrops'
+
+const POSTER_WIDTHS = [92, 154, 185, 300, 500, 780]
+const BACKDROP_WIDTHS = [300, 780, 1280]
 
 const inFlight = new Map()
 
-// Local path for a cached WebP.
-const getPath = (posterPath, width) => {
-  const safe = posterPath.replace(/^\//, '').replace(/\//g, '_')
-  return `${POSTERS_DIR}/${safe}_${width}.webp`
-}
+// Ensure directories exist at startup.
+await fs.mkdir(POSTERS_DIR, { recursive: true })
+await fs.mkdir(BACKDROPS_DIR, { recursive: true })
 
-const fetchBuffer = async (posterPath, width) => {
-  const url = `https://image.tmdb.org/t/p/w${width}${posterPath}`
+/**
+ * Validate a TMDB image path to prevent path traversal.
+ * @param {string} imagePath - The image path from TMDB (e.g. /abc123.jpg).
+ * @returns {boolean} True if the path is valid.
+ */
+const isValidPath = (imagePath) => /^\/[a-zA-Z0-9]+\.(jpg|png)$/.test(imagePath)
+
+/**
+ * Fetch an image buffer from TMDB at the given width.
+ * @param {string} imagePath - The image path from TMDB.
+ * @param {number} width - The image width.
+ * @returns {Promise<Buffer>} The image buffer.
+ */
+const fetchBuffer = async (imagePath, width) => {
+  const url = `https://image.tmdb.org/t/p/w${width}${imagePath}`
   const res = await fetch(url)
   if (!res.ok) throw new Error(`TMDB ${res.status}`)
   return Buffer.from(await res.arrayBuffer())
 }
 
+/**
+ * Save a buffer as WebP to disk, using a temp file for atomicity.
+ * @param {Buffer} buffer - The image buffer.
+ * @param {string} filePath - The destination file path.
+ */
 const saveAsWebp = async (buffer, filePath) => {
   try {
     const temp = `${filePath}.tmp`
@@ -37,9 +56,22 @@ const saveAsWebp = async (buffer, filePath) => {
   }
 }
 
-export const getPosterStream = async (posterPath, width) => {
-  width = VALID_WIDTHS.includes(width) ? width : 300
-  const filePath = getPath(posterPath, width)
+/**
+ * Get a stream for a TMDB image, cached as WebP on disk.
+ * @param {object} options - Options object.
+ * @param {string} options.dir - The cache directory.
+ * @param {number[]} options.validWidths - Allowed widths.
+ * @param {number} options.defaultWidth - Fallback width if invalid.
+ * @param {string} options.imagePath - The image path from TMDB.
+ * @param {number} options.width - The requested width.
+ * @returns {Promise<{stream: Readable, contentType: string}>} The stream and content type.
+ */
+const getImageStream = async ({ dir, validWidths, defaultWidth, imagePath, width }) => {
+  if (!isValidPath(imagePath)) throw new Error('Invalid image path')
+
+  width = validWidths.includes(width) ? width : defaultWidth
+  const safe = imagePath.replace(/^\//, '')
+  const filePath = `${dir}/${safe}_${width}.webp`
 
   // Cached? Serve WebP directly.
   try {
@@ -54,10 +86,28 @@ export const getPosterStream = async (posterPath, width) => {
   }
 
   // First request? Fetch from TMDB once.
-  const buffer = await fetchBuffer(posterPath, width)
+  const buffer = await fetchBuffer(imagePath, width)
   const conversion = saveAsWebp(buffer, filePath)
   inFlight.set(filePath, conversion)
   conversion.finally(() => inFlight.delete(filePath))
 
   return { stream: Readable.from(buffer), contentType: 'image/jpeg' }
 }
+
+/**
+ * Get a stream for a TMDB poster image.
+ * @param {string} posterPath - The poster path from TMDB.
+ * @param {number} width - The requested width.
+ * @returns {Promise<{stream: Readable, contentType: string}>} The stream and content type.
+ */
+export const getPosterStream = (posterPath, width) =>
+  getImageStream({ dir: POSTERS_DIR, validWidths: POSTER_WIDTHS, defaultWidth: 300, imagePath: posterPath, width })
+
+/**
+ * Get a stream for a TMDB backdrop image.
+ * @param {string} backdropPath - The backdrop path from TMDB.
+ * @param {number} width - The requested width.
+ * @returns {Promise<{stream: Readable, contentType: string}>} The stream and content type.
+ */
+export const getBackdropStream = (backdropPath, width) =>
+  getImageStream({ dir: BACKDROPS_DIR, validWidths: BACKDROP_WIDTHS, defaultWidth: 780, imagePath: backdropPath, width })

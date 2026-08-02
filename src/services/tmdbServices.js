@@ -84,6 +84,10 @@ export const findByImdbId = async (imdbId) => {
   return data.movie_results?.[0] ?? null
 }
 
+export const findMovieWithDetails = async (movieId) => {
+  return tmdbFetch(`/movie/${movieId}`, { append_to_response: 'credits,videos' })
+}
+
 export const fetchMovieCredits = async (movieId) => {
   const data = await tmdbFetch(`/movie/${movieId}/credits`)
   const director = data.crew.find(c => c.job === 'Director')

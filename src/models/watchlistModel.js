@@ -66,3 +66,18 @@ export const removeFromWatchlist = async (userId, movieId) => {
   )
   return result.rowCount > 0
 }
+
+/**
+ * Check if a movie is saved by the user.
+ * @param {number} userId - The user's ID.
+ * @param {number} movieId - The TMDB movie ID.
+ * @returns {Promise<boolean>} True if saved.
+ */
+export const isSaved = async (userId, movieId) => {
+  const result = await pool.query(
+    `SELECT 1 FROM movie_interactions
+    WHERE user_id = $1 AND movie_id = $2 AND interaction = 'saved'`,
+    [userId, movieId]
+  )
+  return result.rows.length > 0
+}
