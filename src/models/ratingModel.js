@@ -111,3 +111,17 @@ export const markProcessed = async (userId, movieId) => {
     [userId, movieId]
   )
 }
+
+/**
+ * Get a user's rating for a movie.
+ * @param {number} userId - The user's ID.
+ * @param {number} movieId - The TMDB movie ID.
+ * @returns {Promise<string|null>} The rating, or null if not rated.
+ */
+export const findUserRating = async (userId, movieId) => {
+  const result = await pool.query(
+    'SELECT rating FROM ratings WHERE user_id = $1 AND movie_id = $2',
+    [userId, movieId]
+  )
+  return result.rows[0]?.rating ?? null
+}
