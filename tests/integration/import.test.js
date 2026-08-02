@@ -27,7 +27,8 @@ await mock.module('../../src/services/tmdbServices.js', {
     findByImdbId: mock.fn(async (imdbId) => {
       if (imdbId === 'tt0000001') return testMovie
       return null
-    })
+    }),
+    findMovieWithDetails: mock.fn(async () => ({}))
   }
 })
 

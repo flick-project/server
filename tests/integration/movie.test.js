@@ -28,7 +28,8 @@ await mock.module('../../src/services/tmdbServices.js', {
     fetchMovieCredits: mock.fn(async () => []),
     fetchRecommendations: mock.fn(async () => []),
     findMovie: mock.fn(async () => ({})),
-    findByImdbId: mock.fn(async () => null)
+    findByImdbId: mock.fn(async () => null),
+    findMovieWithDetails: mock.fn(async () => ({}))
   }
 })
 
