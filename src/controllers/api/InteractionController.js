@@ -20,7 +20,7 @@ export class InteractionController extends BaseController {
       const { movieId, interaction } = req.body
       await ensureExists(movieId)
       await createInteraction({ movieId, userId: req.user.id, interaction })
-      // Fetch and store keywords for the recommendation profile.
+      // Fetch keywords for movies the user actually engaged with, for the profile.
       if (interaction === 'saved' || interaction === 'dismissed') {
         const keywords = await fetchMovieKeywords(movieId)
         await storeKeywords(movieId, keywords)

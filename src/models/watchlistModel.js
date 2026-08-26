@@ -51,7 +51,7 @@ export const findWatchlist = async (userId, page, limit) => {
 }
 
 /**
- * Removes a movie from the user's watchlist.
+ * Removes a movie from the user's watchlist by deleting the saved interaction.
  * @param {number} userId - The user's ID.
  * @param {number} movieId - The TMDB movie ID.
  * @returns {boolean} True if the movie was removed, false if nothing matched.
@@ -59,8 +59,7 @@ export const findWatchlist = async (userId, page, limit) => {
 export const removeFromWatchlist = async (userId, movieId) => {
   validateTmdbId(movieId)
   const result = await pool.query(
-    `UPDATE movie_interactions
-    SET interaction = 'removed'
+    `DELETE FROM movie_interactions
     WHERE movie_id = $1 AND user_id = $2 AND interaction = 'saved'`,
     [movieId, userId]
   )
@@ -80,4 +79,21 @@ export const isSaved = async (userId, movieId) => {
     [userId, movieId]
   )
   return result.rows.length > 0
+}
+
+/**
+ * Batch-checks which movies in a list the user has saved.
+ * Used to hydrate discovery/watchlist responses with saved state.
+ * @param {number} userId - The user's ID.
+ * @param {number[]} movieIds - The TMDB movie IDs to check.
+ * @returns {Promise<Set<number>>} Set of saved movie IDs.
+ */
+export const findSavedByIds = async (userId, movieIds) => {
+  if (!movieIds.length) return new Set()
+  const result = await pool.query(
+    `SELECT movie_id FROM movie_interactions
+     WHERE user_id = $1 AND movie_id = ANY($2) AND interaction = 'saved'`,
+    [userId, movieIds]
+  )
+  return new Set(result.rows.map(r => r.movie_id))
 }
