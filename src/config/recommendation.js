@@ -6,13 +6,13 @@
 export const recommendation = {
   // Signal weights by interaction/rating type.
   weights: {
-    favorite: 6,
+    favorite: 8,
     love: 4,
     like: 2,
     saved: 1,
-    removed: 0,
+    neutral: 0,
     skipped: 0,
-    dismissed: -2,
+    dismissed: -4,
     dislike: -2,
     hate: -4
   },

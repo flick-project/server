@@ -13,7 +13,7 @@ import { validateTmdbId } from '../utils/validation.js'
  * @throws {Error} If validation fails.
  */
 const validate = (rating) => {
-  const validTypes = ['love', 'like', 'dislike', 'hate']
+  const validTypes = ['love', 'like', 'neutral', 'dislike', 'hate']
 
   if (!validTypes.includes(rating)) {
     const error = new Error('Invalid rating type')
@@ -124,4 +124,21 @@ export const findUserRating = async (userId, movieId) => {
     [userId, movieId]
   )
   return result.rows[0]?.rating ?? null
+}
+
+/**
+ * Batch-fetches ratings for a list of movies.
+ * Used to hydrate discovery responses with rating state.
+ * @param {number} userId - The user's ID.
+ * @param {number[]} movieIds - The TMDB movie IDs to check.
+ * @returns {Promise<Map<number, string>>} Map of movieId → rating.
+ */
+export const findRatingsByIds = async (userId, movieIds) => {
+  if (!movieIds.length) return new Map()
+  const result = await pool.query(
+    `SELECT movie_id, rating FROM ratings
+     WHERE user_id = $1 AND movie_id = ANY($2)`,
+    [userId, movieIds]
+  )
+  return new Map(result.rows.map(r => [r.movie_id, r.rating]))
 }
