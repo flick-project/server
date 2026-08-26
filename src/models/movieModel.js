@@ -123,9 +123,10 @@ export const findFromPool = async (userId, count) => {
      FROM user_pool p
      JOIN movies m ON m.tmdb_id = p.movie_id
      WHERE p.user_id = $1
-     AND m.tmdb_id NOT IN (SELECT movie_id FROM movie_interactions WHERE user_id = $1 AND interaction != 'removed')
+     AND m.tmdb_id NOT IN (SELECT movie_id FROM movie_interactions WHERE user_id = $1)
      AND m.tmdb_id NOT IN (SELECT movie_id FROM ratings WHERE user_id = $1)
      AND m.tmdb_id NOT IN (SELECT movie_id FROM favorites WHERE user_id = $1)
+     AND m.tmdb_id NOT IN (SELECT movie_id FROM watched WHERE user_id = $1)
      ORDER BY CASE WHEN p.source = 'enriched' THEN 0 ELSE 1 END, p.created_at ASC
      LIMIT $2`,
     [userId, count]
@@ -168,9 +169,10 @@ export const countPool = async (userId) => {
   const result = await pool.query(
     `SELECT COUNT(*) FROM user_pool p
      WHERE p.user_id = $1
-     AND p.movie_id NOT IN (SELECT movie_id FROM movie_interactions WHERE user_id = $1 AND interaction != 'removed')
+     AND p.movie_id NOT IN (SELECT movie_id FROM movie_interactions WHERE user_id = $1)
      AND p.movie_id NOT IN (SELECT movie_id FROM ratings WHERE user_id = $1)
-     AND p.movie_id NOT IN (SELECT movie_id FROM favorites WHERE user_id = $1)`,
+     AND p.movie_id NOT IN (SELECT movie_id FROM favorites WHERE user_id = $1)
+     AND p.movie_id NOT IN (SELECT movie_id FROM watched WHERE user_id = $1)`,
     [userId]
   )
   return parseInt(result.rows[0].count, 10)
@@ -185,11 +187,51 @@ export const countPool = async (userId) => {
 export const findExistingInteractions = async (userId, movieIds) => {
   const result = await pool.query(
     `SELECT movie_id FROM (
-       SELECT movie_id FROM movie_interactions WHERE user_id = $1 AND interaction != 'removed' AND movie_id = ANY($2)
+       SELECT movie_id FROM movie_interactions WHERE user_id = $1 AND movie_id = ANY($2)
        UNION SELECT movie_id FROM ratings WHERE user_id = $1 AND movie_id = ANY($2)
        UNION SELECT movie_id FROM favorites WHERE user_id = $1 AND movie_id = ANY($2)
+       UNION SELECT movie_id FROM watched WHERE user_id = $1 AND movie_id = ANY($2)
      ) existing`,
     [userId, movieIds]
   )
   return new Set(result.rows.map(r => r.movie_id))
+}
+
+/**
+ * Finds credits (director + top cast) for a batch of movies.
+ * Returns a Map keyed by movie_id, each value an array of { name, role }.
+ * Movies without stored credits are absent from the map.
+ * @param {number[]} movieIds - The TMDB movie IDs to fetch credits for.
+ * @returns {Promise<Map<number, Array<{name: string, role: string}>>>} Credits by movie ID.
+ */
+export const findCreditsByMovieIds = async (movieIds) => {
+  if (!movieIds.length) return new Map()
+  const result = await pool.query(
+    `SELECT movie_id, name, role FROM movie_credits
+     WHERE movie_id = ANY($1)`,
+    [movieIds]
+  )
+  const byMovie = new Map()
+  for (const row of result.rows) {
+    const key = Number(row.movie_id)
+    if (!byMovie.has(key)) byMovie.set(key, [])
+    byMovie.get(key).push({ name: row.name, role: row.role })
+  }
+  return byMovie
+}
+
+/**
+ * Finds movies from a batch that already have credits stored.
+ * Used by the pool's background credit prefetch to skip movies that
+ * are already enriched.
+ * @param {number[]} movieIds - The TMDB movie IDs to check.
+ * @returns {Promise<Set<number>>} Set of movie IDs with credits.
+ */
+export const findMoviesWithCredits = async (movieIds) => {
+  if (!movieIds.length) return new Set()
+  const result = await pool.query(
+    'SELECT DISTINCT movie_id FROM movie_credits WHERE movie_id = ANY($1)',
+    [movieIds]
+  )
+  return new Set(result.rows.map(r => Number(r.movie_id)))
 }

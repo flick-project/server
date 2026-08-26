@@ -7,7 +7,7 @@
 import crypto from 'node:crypto'
 import pool from '../config/db.js'
 
-export const EXPIRY_DAYS = 7
+export const EXPIRY_DAYS = 30
 
 /**
  * Hash a token using SHA-256.
@@ -26,11 +26,7 @@ const hashToken = (plainToken) => {
 export const createToken = async (userId) => {
   const plainToken = crypto.randomBytes(64).toString('hex')
   const hashed = hashToken(plainToken)
-  const expiresAt = new Date(Date.now() + (
-    process.env.NODE_ENV === 'production'
-      ? EXPIRY_DAYS * 24 * 60 * 60 * 1000
-      : 10 * 60 * 1000
-  ))
+  const expiresAt = new Date(Date.now() + (EXPIRY_DAYS * 24 * 60 * 60 * 1000))
 
   await pool.query(
     'INSERT INTO refresh_tokens (token, user_id, expires_at) VALUES ($1, $2, $3)',

@@ -9,6 +9,7 @@ import { ensureExists, create } from '../../models/movieModel.js'
 import { searchMovies, findByImdbId, fetchMovieKeywords } from '../../services/tmdbServices.js'
 import { createRatingIfAbsent } from '../../models/ratingModel.js'
 import { storeKeywords } from '../../models/movieModel.js'
+import { markWatched } from '../../models/watchedModel.js'
 import { peopleEnricher } from '../../services/enrichers/peopleEnricher.js'
 import { addToPool } from '../../services/pool/pool.js'
 import pool from '../../config/db.js'
@@ -101,6 +102,7 @@ export class ImportController extends BaseController {
           }
 
           const created = await createRatingIfAbsent(userId, tmdbId, entry.rating)
+          await markWatched(userId, tmdbId)
           created ? imported++ : skipped++
         } catch (err) {
           console.error('Failed on entry:', entry, err.message)

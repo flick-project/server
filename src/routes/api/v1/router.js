@@ -11,6 +11,7 @@ import { router as movieRouter } from './movieRouter.js'
 import { router as watchlistRouter } from './watchlistRouter.js'
 import { router as interactionRouter } from './interactionRouter.js'
 import { router as favoriteRouter } from './favoriteRouter.js'
+import { router as watchedRouter } from './watchedRouter.js'
 import { router as ratingRouter } from './ratingRouter.js'
 import { router as imageRouter } from './imageRouter.js'
 import { router as importRouter } from './importRouter.js'
@@ -25,6 +26,7 @@ router.use('/movies', movieRouter)
 router.use('/watchlist', watchlistRouter)
 router.use('/interactions', interactionRouter)
 router.use('/favorites', favoriteRouter)
+router.use('/watched', watchedRouter)
 router.use('/ratings', ratingRouter)
 router.use('/images', imageRouter)
 router.use('/import', importRouter)

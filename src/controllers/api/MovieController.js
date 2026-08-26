@@ -5,14 +5,16 @@
  */
 import { BaseController } from './BaseController.js'
 import { findUserPreferences } from '../../models/recommendationModel.js'
-import { findMovie, findMovieWithDetails, searchMovies } from '../../services/tmdbServices.js'
+import { findMovie, findMovieWithDetails, searchMovies, fetchMovieVideos } from '../../services/tmdbServices.js'
 import { recommendation } from '../../config/recommendation.js'
 import { tmdbSource } from '../../services/sources/tmdbSource.js'
-import { servePool, addToPool, countUndiscovered } from '../../services/pool/pool.js'
+import { servePool, addToPool, countUndiscovered, ensureCredits } from '../../services/pool/pool.js'
 import { fromPoolItem } from '../../services/sources/tmdbMapper.js'
 import { enrichPendingRatings } from '../../services/recommendationService.js'
-import { isSaved } from '../../models/watchlistModel.js'
-import { findUserRating } from '../../models/ratingModel.js'
+import { isSaved, findSavedByIds } from '../../models/watchlistModel.js'
+import { findUserRating, findRatingsByIds } from '../../models/ratingModel.js'
+import { isWatched, findWatchedByIds } from '../../models/watchedModel.js'
+import { findCreditsByMovieIds } from '../../models/movieModel.js'
 
 const DISCOVER_POOL = 20
 
@@ -47,6 +49,24 @@ export class MovieController extends BaseController {
       }
 
       const movies = await servePool(req.user.id, 20, scores)
+
+      const movieIds = movies.map(m => m.id)
+      await ensureCredits(movieIds)
+
+      const [savedIds, ratings, watchedIds, credits] = await Promise.all([
+        findSavedByIds(req.user.id, movieIds),
+        findRatingsByIds(req.user.id, movieIds),
+        findWatchedByIds(req.user.id, movieIds),
+        findCreditsByMovieIds(movieIds)
+      ])
+
+      movies.forEach(m => {
+        m.saved = savedIds.has(m.id)
+        m.user_rating = ratings.get(m.id) ?? null
+        m.watched = watchedIds.has(m.id)
+        m.credits = credits.get(m.id) ?? []
+      })
+
       res.status(200).json({ movies })
     } catch (error) {
       this.handleControllerError(error, 'Failed to fetch movies.', next)
@@ -121,23 +141,38 @@ export class MovieController extends BaseController {
    * @param {object} res - Express's response object.
    * @param {(error: Error) => void} next - Express's next function.
    */
-  async findWithDetails (req, res, next) {
+  async details (req, res, next) {
     try {
       const { tmdbId } = req.params
       const movie = await findMovieWithDetails(tmdbId)
 
       if (req.user) {
-        const [saved, rating] = await Promise.all([
+        const [saved, rating, watched] = await Promise.all([
           isSaved(req.user.id, tmdbId),
-          findUserRating(req.user.id, tmdbId)
+          findUserRating(req.user.id, tmdbId),
+          isWatched(req.user.id, tmdbId)
         ])
         movie.saved = saved
         movie.user_rating = rating
+        movie.watched = watched
       }
 
       res.status(200).json(movie)
     } catch (error) {
       this.handleControllerError(error, 'Failed to fetch movie.', next)
+    }
+  }
+
+  async trailer (req, res, next) {
+    try {
+      const { tmdbId } = req.params
+      const videos = await fetchMovieVideos(tmdbId)
+      const trailer = videos.find(v => v.site === 'YouTube' && v.type === 'Trailer' && v.official) ??
+      videos.find(v => v.site === 'YouTube' && v.type === 'Trailer')
+      if (!trailer) return res.status(404).json({ message: 'No trailer available.' })
+      res.status(200).json({ key: trailer.key })
+    } catch (error) {
+      this.handleControllerError(error, 'Failed to fetch trailer.', next)
     }
   }
 

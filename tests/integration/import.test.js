@@ -20,6 +20,7 @@ await mock.module('../../src/services/tmdbServices.js', {
   namedExports: {
     discoverMovies: mock.fn(async () => ({ results: [] })),
     searchMovies: mock.fn(async () => ({ results: [] })),
+    fetchMovieVideos: mock.fn(async () => []),
     fetchMovieKeywords: mock.fn(async () => []),
     fetchMovieCredits: mock.fn(async () => []),
     fetchRecommendations: mock.fn(async () => []),

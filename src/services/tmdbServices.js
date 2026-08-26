@@ -97,3 +97,8 @@ export const fetchMovieCredits = async (movieId) => {
     ...cast.map(({ id, name }) => ({ id, name, role: 'cast' }))
   ]
 }
+
+export const fetchMovieVideos = async (movieId) => {
+  const data = await tmdbFetch(`/movie/${movieId}/videos`)
+  return data.results ?? []
+}

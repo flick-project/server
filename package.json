@@ -1,7 +1,7 @@
 {
   "name": "flick-server",
   "private": true,
-  "version": "1.6.0",
+  "version": "2.0.0",
   "description": "Backend API for Flick, built with Express and PostgreSQL.",
   "author": "Hans Nilsson",
   "license": "MIT",
@@ -31,9 +31,9 @@
     "express-rate-limit": "^8.4.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "pg": "^8.20.0",
     "node-pg-migrate": "^8.0.4",
-    "sharp": "^0.34.5"
+    "pg": "^8.20.0",
+    "sharp": "^0.35.4"
   },
   "devDependencies": {
     "eslint": "^9.39.4",

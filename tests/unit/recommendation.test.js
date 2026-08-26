@@ -41,7 +41,7 @@ describe('buildScores', () => {
       { type: 'saved', movie_id: 2, genre_ids: [28], keyword_ids: [] }
     ]
     const { scores } = buildScores(rows)
-    assert.strictEqual(scores.genres[28], 7)
+    assert.strictEqual(scores.genres[28], 9)
   })
 
   it('should handle multiple genres in one row', () => {
@@ -118,6 +118,23 @@ describe('buildScores', () => {
     const rows = [
       { type: 'saved', movie_id: 1, genre_ids: [], keyword_ids: [100] },
       { type: 'love', movie_id: 1, genre_ids: [], keyword_ids: [100] }
+    ]
+    const { keywordCounts } = buildScores(rows)
+    assert.strictEqual(keywordCounts[100], 1)
+  })
+
+  it('should not add score for neutral rating', () => {
+    const rows = [
+      { type: 'neutral', movie_id: 1, genre_ids: [28], keyword_ids: [100] }
+    ]
+    const { scores } = buildScores(rows)
+    assert.strictEqual(scores.genres[28], undefined)
+    assert.strictEqual(scores.keywords[100], 0)
+  })
+
+  it('should count neutral rating in keyword counts', () => {
+    const rows = [
+      { type: 'neutral', movie_id: 1, genre_ids: [], keyword_ids: [100] }
     ]
     const { keywordCounts } = buildScores(rows)
     assert.strictEqual(keywordCounts[100], 1)
