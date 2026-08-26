@@ -4,8 +4,9 @@
  * @module services/pool/pool
  * @author Hans Nilsson
  */
-import { create, addToUserPool, findFromPool, removeFromPool, pruneUserPool, countPool, findExistingInteractions } from '../../models/movieModel.js'
+import { create, addToUserPool, findFromPool, removeFromPool, pruneUserPool, countPool, findExistingInteractions, findMoviesWithCredits, storeCredits } from '../../models/movieModel.js'
 import { findUserPreferences } from '../../models/recommendationModel.js'
+import { fetchMovieCredits } from '../tmdbServices.js'
 import { recommendation } from '../../config/recommendation.js'
 
 /**
@@ -26,11 +27,35 @@ export const addToPool = async (userId, items, source = 'enriched', scores = nul
 
   const existing = await findExistingInteractions(userId, movieIds)
 
+  const addedIds = []
   for (const item of filtered) {
     if (existing.has(item.id)) continue
     await create(itemToMovie(item))
     await addToUserPool(userId, item.id, source)
+    addedIds.push(item.id)
   }
+}
+
+/**
+ * Ensures the given movies have credits stored, fetching from TMDB for any
+ * that don't. Awaitable — call this before serving movies to the client
+ * so the response includes credit data.
+ * @param {number[]} movieIds - Movie IDs to check and enrich.
+ * @returns {Promise<void>} Nothing.
+ */
+export const ensureCredits = async (movieIds) => {
+  if (!movieIds.length) return
+  const existing = await findMoviesWithCredits(movieIds)
+  const missing = movieIds.filter(id => !existing.has(id))
+  if (!missing.length) return
+  await Promise.all(missing.map(async (id) => {
+    try {
+      const credits = await fetchMovieCredits(id)
+      await storeCredits(id, credits)
+    } catch (err) {
+      console.error(`Credit fetch failed for movie ${id}:`, err.message)
+    }
+  }))
 }
 
 /**
