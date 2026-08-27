@@ -13,7 +13,8 @@ import { gravatarUrl } from '../../utils/gravatar.js'
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict'
+  sameSite: 'strict',
+  path: '/api/v1/auth'
 }
 
 export class AuthController extends BaseController {

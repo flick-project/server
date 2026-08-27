@@ -18,7 +18,24 @@ const app = express()
 app.set('trust proxy', 1)
 
 // Set various HTTP headers to make the application a little more secure.
-app.use(helmet())
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'none'"],
+      frameAncestors: ["'none'"]
+    }
+  },
+  strictTransportSecurity: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  }
+}))
+
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()')
+  next()
+})
 
 // Enable Cross Origin Resource Sharing (CORS).
 app.use(cors({
