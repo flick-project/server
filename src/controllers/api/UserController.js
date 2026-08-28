@@ -5,7 +5,6 @@
  */
 import { BaseController } from './BaseController.js'
 import { findProfileInfo, findStats, findKeywordNames } from '../../models/profileModel.js'
-import { gravatarUrl } from '../../utils/gravatar.js'
 import { deleteUser } from '../../models/userModel.js'
 import { findUserPreferences } from '../../models/recommendationModel.js'
 import { recommendation } from '../../config/recommendation.js'
@@ -32,7 +31,6 @@ export class UserController extends BaseController {
 
       const profile = {
         displayName: profileData.display_name,
-        gravatar: gravatarUrl(profileData.email),
         createdAt: profileData.created_at
       }
 

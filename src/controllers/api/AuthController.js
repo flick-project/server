@@ -8,7 +8,6 @@ import { BaseController } from './BaseController.js'
 import { createError } from '../../utils/errors.js'
 import { createUser, authenticate, findById } from '../../models/userModel.js'
 import { createToken, findValid, deleteToken, EXPIRY_DAYS } from '../../models/refreshTokenModel.js'
-import { gravatarUrl } from '../../utils/gravatar.js'
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -123,8 +122,7 @@ export class AuthController extends BaseController {
         maxAge: EXPIRY_DAYS * 24 * 60 * 60 * 1000
       })
       .json({
-        access_token: accessToken,
-        gravatar: gravatarUrl(user.email)
+        access_token: accessToken
       })
   }
 }
