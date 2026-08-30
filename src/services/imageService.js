@@ -42,21 +42,6 @@ const fetchBuffer = async (imagePath, width) => {
 }
 
 /**
- * Save a buffer as WebP to disk, using a temp file for atomicity.
- * @param {Buffer} buffer - The image buffer.
- * @param {string} filePath - The destination file path.
- */
-const saveAsWebp = async (buffer, filePath) => {
-  try {
-    const temp = `${filePath}.tmp`
-    await sharp(buffer).webp({ quality: 75 }).toFile(temp)
-    await fs.rename(temp, filePath)
-  } catch (error) {
-    console.error(`Failed to save WebP: ${filePath}`, error)
-  }
-}
-
-/**
  * Get a stream for a TMDB image, cached as WebP on disk.
  * @param {object} options - Options object.
  * @param {string} options.dir - The cache directory.
@@ -85,13 +70,18 @@ const getImageStream = async ({ dir, validWidths, defaultWidth, imagePath, width
     return { stream: createReadStream(filePath), contentType: 'image/webp' }
   }
 
-  // First request? Fetch from TMDB once.
+  // First request? Fetch from TMDB, convert once, serve WebP.
   const buffer = await fetchBuffer(imagePath, width)
-  const conversion = saveAsWebp(buffer, filePath)
+  const webpBuffer = await sharp(buffer).webp({ quality: 75 }).toBuffer()
+
+  // Persist to disk in the background so subsequent requests are cache hits.
+  const conversion = fs.writeFile(filePath, webpBuffer).catch(err => {
+    console.error(`Failed to save WebP: ${filePath}`, err)
+  })
   inFlight.set(filePath, conversion)
   conversion.finally(() => inFlight.delete(filePath))
 
-  return { stream: Readable.from(buffer), contentType: 'image/jpeg' }
+  return { stream: Readable.from(webpBuffer), contentType: 'image/webp' }
 }
 
 /**
