@@ -42,7 +42,7 @@ before(async () => {
   await create(testMovie)
   await request(app)
     .post('/api/v1/auth/register')
-    .send({ email: 'register@integration.test', displayName: 'RegUser', password: 'Secret12345' })
+    .send({ email: 'register@integration.test', displayName: 'RegUser', password: 'Secret12345', turnstileToken: 'test' })
 })
 
 after(async () => {
@@ -59,7 +59,7 @@ describe('POST /api/v1/interactions', () => {
   before(async () => {
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: 'register@integration.test', password: 'Secret12345' })
+      .send({ email: 'register@integration.test', password: 'Secret12345', turnstileToken: 'test' })
     token = `Bearer ${loginRes.body.access_token}`
   })
 

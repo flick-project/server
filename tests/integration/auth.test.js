@@ -13,7 +13,7 @@ before(async () => {
   await pool.query('DELETE FROM users')
   await request(app)
     .post('/api/v1/auth/register')
-    .send({ email: 'existing@integration.test', password: 'Secret12345', displayName: 'ExistingUser' })
+    .send({ email: 'existing@integration.test', password: 'Secret12345', displayName: 'ExistingUser', turnstileToken: 'test' })
 })
 
 after(async () => {
@@ -28,21 +28,21 @@ describe('POST /api/v1/auth/register', () => {
   it('should register a new user successfully', async () => {
     const res = await request(app)
       .post('/api/v1/auth/register')
-      .send({ email: 'register@integration.test', password: 'Secret12345', displayName: 'RegUser' })
+      .send({ email: 'register@integration.test', password: 'Secret12345', displayName: 'RegUser', turnstileToken: 'test' })
     assert.strictEqual(res.status, 201)
   })
 
   it('should reject duplicate email', async () => {
     const res = await request(app)
       .post('/api/v1/auth/register')
-      .send({ email: 'existing@integration.test', password: 'Secret12345', displayName: 'DupUser' })
+      .send({ email: 'existing@integration.test', password: 'Secret12345', displayName: 'DupUser', turnstileToken: 'test' })
     assert.strictEqual(res.status, 409)
   })
 
   it('should reject password shorter than 10 characters', async () => {
     const res = await request(app)
       .post('/api/v1/auth/register')
-      .send({ email: 'short@integration.test', password: 'abc', displayName: 'ShortUser' })
+      .send({ email: 'short@integration.test', password: 'abc', displayName: 'ShortUser', turnstileToken: 'test' })
     assert.strictEqual(res.status, 400)
   })
 })
@@ -51,7 +51,7 @@ describe('POST /api/v1/auth/login', () => {
   it('should return a valid JWT on successful login', async () => {
     const res = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: 'existing@integration.test', password: 'Secret12345' })
+      .send({ email: 'existing@integration.test', password: 'Secret12345', turnstileToken: 'test' })
     assert.strictEqual(res.status, 200)
     assert.ok(res.body.access_token)
     const parts = res.body.access_token.split('.')
@@ -76,7 +76,7 @@ describe('Protected routes', () => {
   it('should accept request with valid token', async () => {
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: 'existing@integration.test', password: 'Secret12345' })
+      .send({ email: 'existing@integration.test', password: 'Secret12345', turnstileToken: 'test' })
     const res = await request(app)
       .get('/api/v1/watchlist')
       .set('Authorization', `Bearer ${loginRes.body.access_token}`)
@@ -87,7 +87,7 @@ describe('Protected routes', () => {
   it('should return a valid token on refresh', async () => {
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: 'existing@integration.test', password: 'Secret12345' })
+      .send({ email: 'existing@integration.test', password: 'Secret12345', turnstileToken: 'test' })
     const res = await request(app)
       .post('/api/v1/auth/refresh')
       .set('Cookie', loginRes.headers['set-cookie'])
@@ -98,7 +98,7 @@ describe('Protected routes', () => {
     it('should invalidate refresh token on logout', async () => {
       const loginRes = await request(app)
         .post('/api/v1/auth/login')
-        .send({ email: 'existing@integration.test', password: 'Secret12345' })
+        .send({ email: 'existing@integration.test', password: 'Secret12345', turnstileToken: 'test' })
 
       await request(app)
         .post('/api/v1/auth/logout')
@@ -117,11 +117,11 @@ describe('Protected routes', () => {
       for (let i = 0; i < 10; i++) {
         await request(app)
           .post('/api/v1/auth/login')
-          .send({ email: 'existing@integration.test', password: 'wrongpassword' })
+          .send({ email: 'existing@integration.test', password: 'wrongpassword', turnstileToken: 'test' })
       }
       const res = await request(app)
         .post('/api/v1/auth/login')
-        .send({ email: 'existing@integration.test', password: 'wrongpassword' })
+        .send({ email: 'existing@integration.test', password: 'wrongpassword', turnstileToken: 'test' })
       assert.strictEqual(res.status, 429)
     })
   })
