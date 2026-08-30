@@ -1,11 +1,11 @@
 /**
  * @file Auth controller for handling registration, login, logout and refresh tokens.
  * @module controllers/api/AuthController
- * @author Hans Nilsson
  */
 import jwt from 'jsonwebtoken'
 import { BaseController } from './BaseController.js'
 import { createError } from '../../utils/errors.js'
+import { verifyTurnstile } from '../../utils/turnstile.js'
 import { createUser, authenticate, findById } from '../../models/userModel.js'
 import { createToken, findValid, deleteToken, EXPIRY_DAYS } from '../../models/refreshTokenModel.js'
 
@@ -25,9 +25,13 @@ export class AuthController extends BaseController {
    */
   async register (req, res, next) {
     try {
-      const { email, displayName, password } = req.body
-      const user = await createUser(email, displayName, password)
+      const { email, displayName, password, turnstileToken } = req.body
+      const remoteIp = req.headers['cf-connecting-ip'] || req.ip
+      if (!(await verifyTurnstile(turnstileToken, remoteIp))) {
+        throw createError('Verification failed. Please try again.', 403)
+      }
 
+      const user = await createUser(email, displayName, password)
       await this.#sendAuthResponse(res, user, 201)
     } catch (error) {
       if (error.code === '23505') {
@@ -46,9 +50,13 @@ export class AuthController extends BaseController {
    */
   async login (req, res, next) {
     try {
-      const { email, password } = req.body
-      const user = await authenticate(email, password)
+      const { email, password, turnstileToken } = req.body
+      const remoteIp = req.headers['cf-connecting-ip'] || req.ip
+      if (!(await verifyTurnstile(turnstileToken, remoteIp))) {
+        throw createError('Verification failed. Please try again.', 403)
+      }
 
+      const user = await authenticate(email, password)
       await this.#sendAuthResponse(res, user, 200)
     } catch (error) {
       this.handleControllerError(error, 'Wrong email or password.', next)
