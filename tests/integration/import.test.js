@@ -45,7 +45,7 @@ before(async () => {
   await pool.query("DELETE FROM users WHERE email LIKE '%@integration.test'")
   const res = await request(app)
     .post('/api/v1/auth/register')
-    .send({ email: 'import@integration.test', displayName: 'ImportUser', password: 'Secret12345' })
+    .send({ email: 'import@integration.test', displayName: 'ImportUser', password: 'Secret12345', turnstileToken: 'test' })
   token = `Bearer ${res.body.access_token}`
 })
 

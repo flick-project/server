@@ -56,7 +56,7 @@ before(async () => {
   await pool.query("DELETE FROM users WHERE email LIKE '%@integration.test'")
   await request(app)
     .post('/api/v1/auth/register')
-    .send({ email: 'discover@integration.test', displayName: 'DiscoverUser', password: 'Secret12345' })
+    .send({ email: 'discover@integration.test', displayName: 'DiscoverUser', password: 'Secret12345', turnstileToken: 'test' })
 })
 
 beforeEach(async () => {
@@ -80,7 +80,7 @@ describe('GET /api/v1/movies/discover', () => {
   before(async () => {
     const loginRes = await request(app)
       .post('/api/v1/auth/login')
-      .send({ email: 'discover@integration.test', password: 'Secret12345' })
+      .send({ email: 'discover@integration.test', password: 'Secret12345', turnstileToken: 'test' })
     token = `Bearer ${loginRes.body.access_token}`
     const payload = JSON.parse(Buffer.from(loginRes.body.access_token.split('.')[1], 'base64').toString())
     userId = payload.id
